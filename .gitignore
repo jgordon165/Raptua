@@ -1,0 +1,28 @@
+# Build output
+build/
+out/
+.vs/
+*.user
+.deps/
+stage/
+dist/
+
+# Original game data is NEVER committed. Point the engine at your own copy
+# with --data <path>. These patterns are a safety net in case files get
+# copied into the tree by accident.
+data/
+RAPTOR/
+*.GLB
+*.glb
+*.SHR
+*.EXE
+*.exe
+*.zip
+
+# Screenshots and extracted assets come from the game data too.
+*.bmp
+extract/
+re/output/
+
+__pycache__/
+*.pyc

@@ -1,0 +1,24 @@
+name: package
+description: stage the executables and scripts into dist/<name>.zip
+
+inputs:
+  name:
+    description: archive name without extension
+    required: true
+  build_dir:
+    required: false
+    default: build
+  configuration:
+    required: false
+    default: Release
+
+runs:
+  using: "composite"
+  steps:
+    - name: Stage and zip
+      shell: pwsh
+      run: |
+        cmake --install "${{inputs.build_dir}}" --config ${{inputs.configuration}} --prefix "stage/${{inputs.name}}"
+        Set-Content -Path "stage/${{inputs.name}}/PUT-GLB-FILES-HERE.txt" -Value "Copy FILE0000.GLB and FILE0001.GLB from your own Raptor: Call of the Shadows v1.2 into this folder, or run raptua --data <folder>."
+        New-Item -ItemType Directory -Force -Path dist | Out-Null
+        Compress-Archive -Path "stage/${{inputs.name}}" -DestinationPath "dist/${{inputs.name}}.zip" -Force

@@ -1,0 +1,90 @@
+name: release-all
+
+# Builds every platform and, for a v* tag, publishes a GitHub release with
+# the zips. Releases contain the engine and scripts only: players supply
+# FILE0000.GLB / FILE0001.GLB from their own copy of Raptor v1.2.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    strategy:
+      matrix:
+        platform: [x64, x86]
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/build-windows
+        with:
+          platform: ${{matrix.platform}}
+          configurations: Release
+      - uses: ./.github/actions/run-tests
+      - uses: ./.github/actions/package
+        with:
+          name: raptua-windows-${{matrix.platform}}
+      - uses: actions/upload-artifact@v6
+        with:
+          name: raptua-windows-${{matrix.platform}}
+          if-no-files-found: error
+          path: dist/*.zip
+
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/configure-linux
+      - run: cmake --build build --parallel
+      - uses: ./.github/actions/run-tests
+      - uses: ./.github/actions/package
+        with:
+          name: raptua-linux-x64
+      - uses: actions/upload-artifact@v6
+        with:
+          name: raptua-linux-x64
+          if-no-files-found: error
+          path: dist/*.zip
+
+  mac-osx:
+    strategy:
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-15
+          - arch: x86_64
+            runner: macos-15-intel
+    runs-on: ${{matrix.runner}}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/build-mac-osx
+        with:
+          osx_arch: ${{matrix.arch}}
+      - uses: ./.github/actions/run-tests
+      - uses: ./.github/actions/package
+        with:
+          name: raptua-mac-osx-${{matrix.arch}}
+      - uses: actions/upload-artifact@v6
+        with:
+          name: raptua-mac-osx-${{matrix.arch}}
+          if-no-files-found: error
+          path: dist/*.zip
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, linux, mac-osx]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v6
+        with:
+          path: artifacts
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.zip
+          generate_release_notes: true

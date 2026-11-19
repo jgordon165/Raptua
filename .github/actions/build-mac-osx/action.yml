@@ -1,0 +1,32 @@
+name: mac-osx
+description: configure and build on macOS
+
+inputs:
+  osx_arch:
+    description: "x86_64 or arm64"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install dependencies
+      run: brew install ninja
+      shell: bash
+
+    - name: Cache fetched dependencies
+      uses: actions/cache@v5
+      with:
+        path: .deps
+        key: ${{runner.os}}-${{inputs.osx_arch}}-deps-${{hashFiles('CMakeLists.txt')}}
+
+    - name: Configure
+      run: >
+        cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_OSX_ARCHITECTURES=${{inputs.osx_arch}}
+        -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+        -DFETCHCONTENT_BASE_DIR="$GITHUB_WORKSPACE/.deps"
+      shell: bash
+
+    - name: Build
+      run: cmake --build build --parallel
+      shell: bash
