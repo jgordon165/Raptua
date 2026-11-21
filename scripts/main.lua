@@ -5,6 +5,7 @@ local scenes = require("core.scenes")
 function init()
   rap.tick_rate(70)            -- mode 13h refresh rate; game logic runs per tick
   if RAPTUA_SELFTEST then return end
+  require("core.settings").load()
   if not rap.have_data() then
     scenes.switch(require("scenes.nodata"))
   else
@@ -41,7 +42,7 @@ function selftest()
   assert(util.overlap(0, 0, 10, 10, 5, 5, 10, 10))
   assert(not util.overlap(0, 0, 4, 4, 5, 5, 2, 2))
   local splib = require("game.splib")
-  local def = splib.wrap({ name = "SHIP01G1_PIC", f = { [8] = 2, [14] = 7, [15] = 350 },
+  local def = splib.wrap({ name = "SHIP01G1_PIC", f = { [8] = 2, [14] = 7, [15] = 350, [20] = 2, [22] = 1 },
                            path_x = { 0, 10 }, path_y = { 0, -5 }, table = {} })
   assert(def.frames == 2 and def.hits == 7 and def.bounty == 350 and not def.ground)
   local path = splib.path_points(def)

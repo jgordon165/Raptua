@@ -54,6 +54,7 @@ function M.pressed(action)
   if action == "up" then return rap.pressed("repeat_Up") or rap.pressed("pad_dpup") end
   if action == "down" then return rap.pressed("repeat_Down") or rap.pressed("pad_dpdown") end
   if action == "special" then return rap.pressed("Left Alt") or rap.pressed("mouse_right") or rap.pressed("pad_b") end
+  if action == "bomb" then return rap.pressed("Left Shift") or rap.pressed("mouse_middle") or rap.pressed("pad_y") end
   return false
 end
 

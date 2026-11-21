@@ -20,17 +20,13 @@ function M.new()
   return self
 end
 
-function M:player_gun(x, y)
-  for _, dx in ipairs({ -5, 5 }) do
-    self.player[#self.player + 1] = { x = x + dx, y = y + 4, vx = 0, vy = -8, dmg = 1 }
-  end
-  rap.play(self.snd_gun, 0.5)
-end
-
-function M:enemy_shot(x, y, tx, ty, speed)
+-- An aimed enemy shot. Speeds are per game frame. (`kind` is the sprite
+-- library's per-gun shot type; all kinds fly as the same aimed bullet for
+-- now.)
+function M:enemy_shot(x, y, tx, ty, kind)
   local dx, dy = tx - x, ty - y
   local len = math.max(1, math.sqrt(dx * dx + dy * dy))
-  speed = speed or 2.5
+  local speed = 5
   self.enemy[#self.enemy + 1] = { x = x, y = y, vx = dx / len * speed, vy = dy / len * speed, t = 0 }
   rap.play(self.snd_eshot, 0.4)
 end
@@ -70,7 +66,6 @@ end
 
 function M:update(scroll)
   local function onscreen(s) return s.y > -16 and s.y < rap.H + 16 and s.x > -16 and s.x < rap.W + 16 end
-  move(self.player, function(s) s.x = s.x + s.vx; s.y = s.y + s.vy; return not s.dead and onscreen(s) end)
   move(self.enemy, function(s) s.x = s.x + s.vx; s.y = s.y + s.vy; s.t = s.t + 1; return not s.dead and onscreen(s) end)
   move(self.fx, function(f)
     f.t = f.t + 1
@@ -84,8 +79,6 @@ function M:draw_ground_fx()
 end
 
 function M:draw()
-  local yellow = util.color(255, 240, 120)
-  for _, s in ipairs(self.player) do rap.rect(math.floor(s.x), math.floor(s.y), 2, 6, yellow) end
   for _, s in ipairs(self.enemy) do
     if #self.eshot > 0 then
       rap.pic(self.eshot[(s.t // 4) % #self.eshot + 1], math.floor(s.x) - 3, math.floor(s.y) - 3)

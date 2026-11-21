@@ -28,11 +28,7 @@ local function item_names()
   return names
 end
 
--- Effects by bonus number. Anything not listed counts as an item kept for
--- later (store/hangar) and pays a small bonus.
-local SHIELD_ENERGY = 15     -- energy module: shield recharge
-local PHASE_SHIELD = 14
-local MEGABOMB = 10
+local weapons = require("game.weapons")
 
 function M.new()
   local self = setmetatable({}, M)
@@ -57,20 +53,28 @@ function M:drop(n, x, y)
   self.list[#self.list + 1] = { n = n, frames = fr, x = x - w / 2, y = y - h / 2, w = w, h = h, t = 0 }
 end
 
+-- Pickups carry object numbers (weapons.lua): weapons are added to the
+-- ship (the first special picked up is selected), energy recharges a
+-- quarter of the shield, the phase shield fills its own layer, megabombs
+-- stack to 5, cash items pay out.
 local function apply(self, player, n)
-  player.items[n] = (player.items[n] or 0) + 1
-  if n == SHIELD_ENERGY then
-    player.shield = math.min(100, player.shield + 25)
-  elseif n == PHASE_SHIELD then
-    player.shield = 100
-  elseif n == MEGABOMB then
-    player.bombs = player.bombs + 1
+  local label
+  if weapons.CASH[n] then
+    player.money = player.money + weapons.CASH[n]
+    label = ("$%d"):format(weapons.CASH[n])
+  elseif n == weapons.ENERGY then
+    player.shield = math.min(player.max_shield, player.shield + player.max_shield // 4)
+  elseif n == weapons.SUPER_SHIELD then
+    player.super = 100
+  elseif n == weapons.MEGABOMB then
+    player.items[n] = math.min(5, (player.items[n] or 0) + 1)
   else
-    player.money = player.money + 500
+    player.items[n] = 1
+    if not player.special and n >= weapons.FIRST_SPECIAL and n <= weapons.LAST_SPECIAL then player.special = n end
   end
   if os.getenv("RAPTUA_TRACE") then io.stderr:write(("bonus %d collected: %s\n"):format(n, self.names[n] or "?")) end
-  self.message = self.names[n] or ("BONUS %d"):format(n)
-  self.message_t = 120
+  self.message = label or self.names[n] or (weapons.LIB[n] and weapons.LIB[n].name) or ("BONUS %d"):format(n)
+  self.message_t = 70
 end
 
 function M:update(scroll, player)

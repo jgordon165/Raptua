@@ -44,6 +44,22 @@ elseif(APPLE)
     target_compile_definitions(lua_static PRIVATE LUA_USE_MACOSX)
 endif()
 
+# ---- ymfm (Yamaha FM chip emulators, BSD-3; we use its OPL3) ---------------
+# Same pinned commit as Meguarace (the project has no release tags).
+# SOURCE_SUBDIR points at a folder with no CMakeLists.txt, so only the
+# sources are fetched (ymfm's own CMake would build every chip it has).
+FetchContent_Declare(ymfm
+    GIT_REPOSITORY https://github.com/aaronsgiles/ymfm.git
+    GIT_TAG        81aec25ccbb98f4873a255f7551ac4dadac59b4a
+    SOURCE_SUBDIR  sources-only)
+FetchContent_MakeAvailable(ymfm)
+add_library(ymfm_opl STATIC
+    ${ymfm_SOURCE_DIR}/src/ymfm_opl.cpp
+    ${ymfm_SOURCE_DIR}/src/ymfm_adpcm.cpp
+    ${ymfm_SOURCE_DIR}/src/ymfm_pcm.cpp)
+target_include_directories(ymfm_opl SYSTEM PUBLIC ${ymfm_SOURCE_DIR}/src)
+target_compile_options(ymfm_opl PRIVATE $<IF:$<CXX_COMPILER_ID:MSVC>,/W0,-w>)   # third-party code
+
 function(raptua_warnings target)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4 /permissive- /utf-8)
@@ -58,8 +74,14 @@ add_library(raptua_formats STATIC
     src/formats/pic.cpp
     src/formats/level.cpp
     src/formats/font.cpp
-    src/formats/sound.cpp)
+    src/formats/sound.cpp
+    src/formats/mus.cpp)
 target_include_directories(raptua_formats PUBLIC src)
+
+# ---- Music synth: no SDL, so the tests can render it ---------------------------
+add_library(raptua_music STATIC src/music.cpp)
+target_link_libraries(raptua_music PUBLIC raptua_formats ymfm_opl)
+raptua_warnings(raptua_music)
 raptua_warnings(raptua_formats)
 
 # ---- The game -----------------------------------------------------------------
@@ -69,7 +91,7 @@ add_executable(raptua WIN32
     src/audio.cpp
     src/input.cpp
     src/lua_api.cpp)
-target_link_libraries(raptua PRIVATE raptua_formats lua_static SDL2::SDL2-static)
+target_link_libraries(raptua PRIVATE raptua_formats raptua_music lua_static SDL2::SDL2-static)
 if(TARGET SDL2::SDL2main)
     target_link_libraries(raptua PRIVATE SDL2::SDL2main)
 endif()
@@ -94,7 +116,7 @@ raptua_warnings(raptua-glb)
 if(RAPTUA_TESTS)
     enable_testing()
     add_executable(raptua_tests tests/test_formats.cpp)
-    target_link_libraries(raptua_tests PRIVATE raptua_formats)
+    target_link_libraries(raptua_tests PRIVATE raptua_formats raptua_music)
     raptua_warnings(raptua_tests)
     add_test(NAME formats COMMAND raptua_tests)
     if(RAPTUA_DATA)

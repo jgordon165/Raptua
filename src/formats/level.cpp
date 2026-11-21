@@ -39,11 +39,10 @@ bool decode_sprite_lib(const Bytes& d, std::vector<SpriteDef>& out) {
         for (int i = 0; i < 26; ++i) s.f[size_t(i)] = rd32(p + 16 + i * 4);
         for (int t = 0; t < 6; ++t)
             for (int i = 0; i < 24; ++i) s.table[size_t(t)][size_t(i)] = rd16(p + 120 + t * 48 + i * 2);
-        for (int i = 0; i < 29; ++i) {
+        for (int i = 0; i < 30; ++i) {
             s.path_x[size_t(i)] = rd16(p + 408 + i * 2);
-            s.path_y[size_t(i)] = rd16(p + 466 + i * 2);
+            s.path_y[size_t(i)] = rd16(p + 468 + i * 2);
         }
-        s.tail = rd32(p + 524);
         out.push_back(std::move(s));
     }
     return true;

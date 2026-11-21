@@ -5,6 +5,7 @@
 #include <unordered_map>
 
 #include "formats/level.h"
+#include "formats/mus.h"
 
 namespace raptua {
 
@@ -296,6 +297,50 @@ int l_volume(lua_State* L) {
 
 int l_stop_sounds(lua_State* L) { E(L)->audio.stop_all(); return 0; }
 
+// music(name [, loop = true]) -> ok. Plays a MUS song through the OPL3 with
+// the GENMIDI_OP2 bank (loaded on first use). Re-requesting the song that's
+// already playing leaves it running.
+std::string g_music_name;
+bool g_bank_loaded = false;
+int l_music(lua_State* L) {
+    auto* e = E(L);
+    const char* name = luaL_checkstring(L, 1);
+    bool loop = lua_isnoneornil(L, 2) ? true : lua_toboolean(L, 2);
+    if (!e->audio_ok) { lua_pushboolean(L, false); return 1; }
+    if (g_music_name == name && e->audio.music_playing()) { lua_pushboolean(L, true); return 1; }
+    if (!g_bank_loaded) {
+        GenMidi bank;
+        if (!decode_genmidi(e->glb.read("GENMIDI_OP2"), bank)) { lua_pushboolean(L, false); return 1; }
+        e->audio.set_music_bank(bank);
+        g_bank_loaded = true;
+    }
+    MusScore score;
+    bool ok = decode_mus(e->glb.read(name), score) && e->audio.play_music(std::move(score), loop);
+    g_music_name = ok ? name : "";
+    lua_pushboolean(L, ok);
+    return 1;
+}
+
+int l_music_stop(lua_State* L) {
+    auto* e = E(L);
+    if (e->audio_ok) e->audio.stop_music();
+    g_music_name.clear();
+    return 0;
+}
+
+int l_music_volume(lua_State* L) {
+    auto* e = E(L);
+    if (lua_gettop(L) >= 1) e->audio.music_volume = float(luaL_checknumber(L, 1));
+    lua_pushnumber(L, e->audio.music_volume);
+    return 1;
+}
+
+int l_music_playing(lua_State* L) {
+    auto* e = E(L);
+    lua_pushstring(L, e->audio_ok && e->audio.music_playing() ? g_music_name.c_str() : "");
+    return 1;
+}
+
 // ---- input / system -----------------------------------------------------------------
 
 int l_held(lua_State* L) { lua_pushboolean(L, E(L)->input.held(luaL_checkstring(L, 1))); return 1; }
@@ -391,6 +436,8 @@ void register_lua_api(lua_State* L, Engine* e) {
         {"text", l_text}, {"text_size", l_text_size},
         {"level", l_level}, {"sprite_lib", l_sprite_lib}, {"flats", l_flats},
         {"sound", l_sound}, {"play", l_play}, {"volume", l_volume}, {"stop_sounds", l_stop_sounds},
+        {"music", l_music}, {"music_stop", l_music_stop}, {"music_volume", l_music_volume},
+        {"music_playing", l_music_playing},
         {"held", l_held}, {"pressed", l_pressed}, {"typed", l_typed},
         {"mouse", l_mouse}, {"grab_mouse", l_grab_mouse},
         {"tick_rate", l_tick_rate}, {"quit", l_quit}, {"fullscreen", l_fullscreen},
