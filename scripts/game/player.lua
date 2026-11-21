@@ -22,17 +22,18 @@ function M.new()
   self.bank = 0             -- -3 (left) .. +3 (right), fractional while easing
   self.x = rap.W / 2 - self.w / 2
   self.y = rap.H - self.h - 16
-  self.shield = 100
+  self.shield, self.max_shield = 100, 100
+  self.super = 0            -- phase shield: absorbs damage before the shield
   self.money = 0
-  self.bombs = 0            -- megabombs
-  self.items = {}           -- picked-up items by bonus number (for the hangar/store later)
+  self.items = { [0] = 1 }  -- owned objects by number (weapons.lua); start with the machine guns
+  self.special = nil        -- selected special weapon (3..14)
   self.cool = 0
   self.flash = 0
   self.dead = false
   return self
 end
 
-function M:update(shots)
+function M:update()
   if self.dead then return end
   local sp = 3
   local x0 = self.x
@@ -58,17 +59,27 @@ function M:update(shots)
   if self.bank < target then self.bank = math.min(target, self.bank + BANK_RATE)
   elseif self.bank > target then self.bank = math.max(target, self.bank - BANK_RATE) end
 
-  self.cool = math.max(0, self.cool - 1)
   self.flash = math.max(0, self.flash - 1)
-  if (util.held("fire") or self.autofire) and self.cool == 0 then
-    self.cool = 4
-    shots:player_gun(self.x + self.w / 2, self.y)
+end
+
+-- Megabombs carried (object 11).
+function M:bombs() return self.items[11] or 0 end
+
+-- Select the next owned special weapon after the current one.
+function M:next_special(first, last)
+  local start = self.special or (first - 1)
+  for i = 1, last - first + 1 do
+    local n = first + (start - first + i) % (last - first + 1)
+    if self.items[n] and n ~= 11 then self.special = n; return true end
   end
+  return false
 end
 
 function M:hurt(n)
   if self.dead then return end
   if self.autofire then self.flash = 6; return end   -- autoplay/demo: can't die
+  local absorbed = math.min(self.super, n)
+  self.super, n = self.super - absorbed, n - absorbed
   self.shield = self.shield - n
   self.flash = 6
   if self.shield <= 0 then self.shield = 0; self.dead = true end

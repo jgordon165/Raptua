@@ -45,20 +45,19 @@ Tiles are the unnamed items between `STARTGnTILES` and `ENDGnTILES`, each a raw 
 - `9 × 150` cells of `u16 tile, u16 tileset`, top row first. Play starts at the bottom and scrolls up.
 - Actors: 24 bytes each: `link, slib, x (column 0–8), y (row), game (sprite bank), level (difficulty gate: 3/4/5 = easy/medium/hard; other values are special)`.
 
-## Sprite library `SPRITEn_ITM` (partly known)
+## Sprite library `SPRITEn_ITM` (known)
 
 There are 131 records of 528 bytes in the shareware data.
 
-| Bytes | Field | Status |
-|---|---|---|
-| 0–15 | name of the first frame (`SHIP01G1_PIC`) | known |
-| 16–119 | 26 × i32, Lua `f[1..26]` | see below |
-| 120–407 | six `i16[24]` tables | guess: per-shot timing / kind / x / y |
-| 408–465 | `i16[29]` path x | guess |
-| 466–523 | `i16[29]` path y | guess |
-| 524–527 | i32, always 0 | known |
+| Bytes | Field |
+|---|---|
+| 0–15 | name of the first frame (`SHIP01G1_PIC`) |
+| 16–119 | 26 × i32, Lua `f[1..26]`: item, bonus, explosion type, shot spacing, (ground, unused), suck, frame rate, frame count, countdown, rewind, anim type, shadow, boss flag, hit points, bounty, shoot start, volleys per burst, burst rest, move speed, flight point count, repeat-from point, flight type, gun count, engine count, (sfx, unused), song |
+| 120–407 | six `i16[24]` per-gun tables: shot type, engine flame x, y, width, shot origin x, y |
+| 408–467 | `i16[30]` flight path x |
+| 468–527 | `i16[30]` flight path y |
 
-In the `f[]` ints: `f[1]` = item handle in the build the library was made for (it does not match v1.2's handles, so the engine looks frames up by name), `f[8]` = frame count, `f[14]` = hit points, `f[15]` = bounty, `f[24]` = number of shot-table entries. All of these are guesses that fit every record. The rest are unnamed.
+`item` is a GLB handle in the original build (it doesn't match v1.2's handles), so frames are looked up by name. `bonus` is an object number (see `scripts/game/weapons.lua`). Flight types: 0 repeat, 1 linear, 2 kamikaze, 3 ground, 4 ground moving left, 5 ground moving right. Air paths are offsets from the spawn column and the screen's middle line (y = 100). The game logic runs once every 3 vertical blanks (70/3 ≈ 23.3 Hz), and the map scrolls 1 pixel per frame. An actor spawns when its row is 3 rows above the top of the screen.
 
 ## Tile damage `FLATSGn_ITM` (known)
 

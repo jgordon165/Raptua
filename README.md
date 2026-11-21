@@ -19,7 +19,7 @@ Early. What works today:
 - Digitized sound effects for guns, hits, explosions, pickups, the low-shield warning, the crash and menus. Music and sound volume are in the title menu and saved between runs
 - An asset explorer (F1) for browsing everything in the archives
 
-Still to come (roughly in order): the real enemy flight and shot rules read out of `RAP.EXE`, weapons and the store/hangar, boss music and the hangar/store, cutscenes (AGX), menus and saves, then other platforms the same way as Meguarace and Tetrispack. `docs/formats.md` lists what is known and what is still a guess.
+Still to come (roughly in order): enemy shot types, weapons in the store and the store/hangar, boss music and the hangar/store, cutscenes (AGX), menus and saves, then other platforms the same way as Meguarace and Tetrispack. `docs/formats.md` lists what is known and what is still a guess.
 
 ## Running
 
@@ -29,8 +29,9 @@ Still to come (roughly in order): the real enemy flight and shot rules read out 
 | Key | Action |
 |---|---|
 | Arrows / mouse / left stick | Fly |
-| Ctrl / Space / left mouse / A | Fire |
-| Alt / right mouse / B | Megabomb |
+| Ctrl / Space / left mouse / A | Fire (guns plus the selected special weapon) |
+| Alt / right mouse / B | Next special weapon |
+| Left Shift / middle mouse / Y | Megabomb |
 | Esc | Pause (twice: quit to title) |
 | F1 | Asset explorer |
 | F11, Alt+Enter | Fullscreen |

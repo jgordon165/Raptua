@@ -23,7 +23,7 @@ function M.new(map_name, tileset)
   self.flats = rap.flats("FLATSG1_ITM") or {}
   self.hp = {}                        -- cell index -> remaining hit points
   self.cam = H * TILE - M.VIEW_H      -- world y of the screen's top line
-  self.speed = 0.5                    -- pixels per tick
+  self.speed = 1                      -- pixels per game frame
   self.next_actor = 1
   table.sort(self.actors, function(a, b) return a.y > b.y end)   -- bottom rows first
   return self
@@ -40,7 +40,8 @@ function M:take_spawns(difficulty)
   local out = {}
   while self.next_actor <= #self.actors do
     local a = self.actors[self.next_actor]
-    if a.y * TILE + TILE < self.cam - 8 then break end
+    -- An actor appears when its row is 3 rows above the top of the screen.
+    if a.y * TILE < self.cam - 3 * TILE then break end
     self.next_actor = self.next_actor + 1
     -- level 3/4/5 = easy/medium/hard and up; other values are special tiers.
     if a.level <= 2 + difficulty or a.level > 5 then out[#out + 1] = a end
