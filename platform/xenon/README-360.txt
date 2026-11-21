@@ -22,4 +22,5 @@ Controls
   B                      next special weapon
   Y                      megabomb
   START                  pause / continue
+  RB                     help
   BACK                   choose in menus

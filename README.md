@@ -21,9 +21,11 @@ Early. What works today:
 - The pilot side, from your data's windows: start-up logos, registration (name, callsign, photo, difficulty), pilot loading and saving, the hangar, the ship computer (sector pick, secret-enemy lights) and the supply room (buy and sell, with each item's description). After each wave you land back at the hangar
 - The original movies from your data: the intro after the start-up logos, the landing after each wave, the death sequence and the end of a sector, with their sound effects. Any key skips
 - Songs play where the original plays them: the main menu theme, the intro theme over a game in progress, each sector's own wave order, the death theme, and the credits songs in turn
-- An asset explorer (F1) for browsing everything in the archives
+- Help (F1) with the original help pages from your data, opening at the page for the screen you're on
+- The demos: D on the main menu, or leaving it untouched for half a minute, replays one of the original's three recordings (the recorded flight and firing; Raptua's enemies)
+- An asset explorer (F9) for browsing everything in the archives
 
-Still to come (roughly in order): enemy shot types, the non-missile special weapons, help and the demo, the original pilot save format, then the SNES build. `docs/formats.md` lists what is known and what is still a guess.
+Still to come (roughly in order): enemy shot types, the non-missile special weapons, the original pilot save format, then the SNES build. `docs/formats.md` lists what is known and what is still a guess.
 
 ## Running
 
@@ -39,7 +41,8 @@ Still to come (roughly in order): enemy shot types, the non-missile special weap
 | Esc | Main menu (Return to Game goes back) |
 | P | Pause |
 | F5 (main menu) | Cycle game speed |
-| F1 | Asset explorer |
+| F1 | Help (the page for where you are) |
+| F9 | Asset explorer |
 | F11, Alt+Enter | Fullscreen |
 | F12 | Screenshot (BMP) |
 

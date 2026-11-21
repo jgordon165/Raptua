@@ -146,4 +146,39 @@ function M.load_pilot(pick)
   }
 end
 
+-- HELP: the pages between the STARTHELP and ENDHELP markers in the
+-- player's FILE0000.GLB, shown in HELP_SWD. Opens at `page` (an item name
+-- such as "HANGHLP1_TXT"); UP / DOWN (and the arrows, Page Up / Down, Home,
+-- End) go through every page, wrapping; DONE / Esc closes.
+function M.help(page)
+  local first, last = rap.find("STARTHELP"), rap.find("ENDHELP")
+  if not first or not last or last - first < 2 then return nil end
+  local count = last - first - 1
+  local w = swd.open("HELP_SWD")
+  if not w then return nil end
+  local cur = 0
+  local start = page and rap.find(page)
+  if start and start > first and start < last then cur = start - first - 1 end
+  local function show()
+    w:set_item("TEXT", first + 1 + cur)
+    w:set_text("HEADER", ("PAGE : %02d"):format(cur + 1))
+  end
+  show()
+  w:select("DONE")
+  return {
+    win = w,
+    update = function(self)
+      local r = w:update()
+      local step = 0
+      if r == "DOWN" or rap.pressed("repeat_Page Down") then step = 1 end
+      if r == "UP" or rap.pressed("repeat_Page Up") then step = -1 end
+      if rap.pressed("Home") then cur = 0; show() end
+      if rap.pressed("End") then cur = count - 1; show() end
+      if step ~= 0 then cur = (cur + step) % count; show() end
+      if r == "DONE" or r == "cancel" or rap.pressed("F1") then return true end
+    end,
+    draw = function(self) w:draw() end,
+  }
+end
+
 return M

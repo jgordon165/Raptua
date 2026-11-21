@@ -86,6 +86,14 @@ The original's sequences (frame rates in 70 Hz vertical blanks; `scripts/game/mo
 - **Death:** `DOWN` (11), then `SDEATH` (3, eight times).
 - **Sector cleared:** `GAME1END` (4, eight times).
 
+## Help pages (known)
+
+The help pages are the text items between the `STARTHELP` and `ENDHELP` markers in `FILE0000.GLB`. They're drawn in `HELP_SWD`'s text field by its layout script. F1 opens help at the page for the current screen (`HELP1` main menu, `GAMEHLP1` in a mission, `HANGHLP1`, `COMPHLP1`, `STORHLP1`), and Up and Down cycle through all of them.
+
+## Demo recordings `DEMOnG1_REC` (known)
+
+12 bytes per game frame: four `i8` buttons (fire, next special, megabomb, unused), `i16` x and y (the ship's top-left in screen pixels), `i16` bank frame (0–6, 3 = level), `i16` unused. Record 0 is a header: frame count in the bank field, sector (from 0) in x, wave (from 0) in y. The three shareware demos fly sector 1, waves 3, 5 and 7. Raptua replays the recorded ship position and buttons. The enemies are Raptua's own, so a replay isn't a frame-exact copy of the original demo.
+
 ## Window layouts `*_SWD` (known)
 
 The menus and dialogs. Each starts with a 120-byte window header: eight `i32` (version, size, arrow-key flag, display, two unused, id, type), the window's name and fill item as `char[16]` each, then `i32` item, fill (0 colour, 1 texture tiled, 2 picture, 3 see-through), lock, offset of the first field, text offset, first focused field, option, colour, field count, x, y, width, height, shadow.

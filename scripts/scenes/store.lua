@@ -102,6 +102,11 @@ end
 function M.update()
   local top = M.stack[#M.stack]
   if top then if top:update() then table.remove(M.stack) end; return end
+  if rap.pressed("F1") then
+    local h = dialogs.help("STORHLP1_TXT")
+    if h then M.stack[#M.stack + 1] = h end
+    return
+  end
   if not M.win then scenes.pop(); return end
   local r = M.win:update()
   if M.win.moved then rap.play(M.snd, 0.4) end

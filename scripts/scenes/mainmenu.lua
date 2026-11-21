@@ -27,6 +27,13 @@ function M.enter(arg)
 
   end
   music.menu(M.resume ~= nil)
+  M.idle = 0
+end
+
+-- A demo: the next recording, replayed in its sector and wave.
+local function play_demo()
+  local d = require("game.demo").next()
+  if d then scenes.switch(require("scenes.play"), { sector = d.sector, map = d.wave, difficulty = 2, demo = d }) end
 end
 
 local function push(d) if d then M.stack[#M.stack + 1] = d end end
@@ -65,6 +72,12 @@ function M.update()
     if top:update() then table.remove(M.stack) end
     return
   end
+  if rap.pressed("F1") then push(dialogs.help("HELP1_TXT")); return end
+  -- D (as the menu's label says), or half a minute untouched: a demo.
+  local _, _, _, _, moved = rap.mouse()
+  if rap.typed() ~= "" or moved or rap.pressed("Return") or rap.pressed("Up") or rap.pressed("Down") then M.idle = 0 end
+  M.idle = M.idle + 1
+  if not M.resume and (rap.pressed("D") or M.idle > 30 * 70) then play_demo(); return end
   if not M.win then
     if util.pressed("ok") then scenes.switch(require("scenes.register")) end
     return

@@ -19,10 +19,11 @@ extern void XENON_AudioPump(void);
 
 /* Controller -> keys. The game knows keys only, so each button stands for
  * the key that does the same job on a PC (README: "Xbox 360"). */
-enum { K_UP, K_DOWN, K_LEFT, K_RIGHT, K_SPACE, K_CTRL, K_ALT, K_SHIFT, K_ESCAPE, K_RETURN, K_COUNT };
+enum { K_UP, K_DOWN, K_LEFT, K_RIGHT, K_SPACE, K_CTRL, K_ALT, K_SHIFT, K_ESCAPE, K_RETURN, K_F1, K_COUNT };
 static const SDL_Scancode key_code[K_COUNT] = {
     SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, SDL_SCANCODE_SPACE,
     SDL_SCANCODE_LCTRL, SDL_SCANCODE_LALT, SDL_SCANCODE_LSHIFT, SDL_SCANCODE_ESCAPE, SDL_SCANCODE_RETURN,
+    SDL_SCANCODE_F1,
 };
 static int key_down[K_COUNT];
 
@@ -41,6 +42,7 @@ static void key_map(const xp_pad *p, int *k)
     k[K_SHIFT] |= p->y;                                           /* megabomb */
     k[K_ESCAPE] |= p->start;                                      /* pause */
     k[K_RETURN] |= p->back;                                       /* OK in menus */
+    k[K_F1] |= p->rb;                                             /* help (as the original's joystick) */
 }
 
 static void XENON_PumpEvents(_THIS)
