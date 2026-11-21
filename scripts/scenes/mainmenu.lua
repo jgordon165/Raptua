@@ -31,15 +31,12 @@ end
 
 local function push(d) if d then M.stack[#M.stack + 1] = d end end
 
-local function start_game(diff)
-  scenes.switch(require("scenes.play"), { sector = 1, map = 1, difficulty = diff })
-end
-
 local function activate(name)
   if name == "NEW" then
-    push(dialogs.difficulty(function(d) if d then M.start_with = d end end))
+    scenes.switch(require("scenes.register"))
   elseif name == "LOAD" then
-    push(dialogs.message("NO SAVED GAMES YET", 3))   -- pilots and saves come with the hangar
+    local d = dialogs.load_pilot(function(p) if p then M.load_with = p end end)
+    push(d or dialogs.message("NO PILOTS TO LOAD", 3))
   elseif name == "OPTS" then
     push(dialogs.options())
   elseif name == "ORDER" then
@@ -57,7 +54,7 @@ local function activate(name)
 end
 
 function M.update()
-  if M.start_with then local d = M.start_with; M.start_with = nil; start_game(d); return end
+  if M.load_with then local p = M.load_with; M.load_with = nil; scenes.switch(require("scenes.hangar"), { pilot = p }); return end
   -- Raptua extra (not in the original's window): F5 cycles the game speed.
   if rap.pressed("F5") then
     settings.cycle_cadence(1)
@@ -69,7 +66,7 @@ function M.update()
     return
   end
   if not M.win then
-    if util.pressed("ok") then start_game(1) end
+    if util.pressed("ok") then scenes.switch(require("scenes.register")) end
     return
   end
   local r = M.win:update()

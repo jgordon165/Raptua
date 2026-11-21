@@ -16,7 +16,10 @@ local util = require("core.util")
 local M = {}
 M.__index = M
 
-local T_TEXT, T_BUTTON, T_DRAGBAR, T_BUMPIN, T_BUMPOUT, T_ICON, T_SLIDER = 1, 2, 6, 7, 8, 9, 11
+-- Type 11 is a "view area": an invisible region the program gives meaning
+-- to (the hangar's doors, the store's buttons). Raptua draws a slider knob
+-- on one only when a value is set for it (the options window's volumes).
+local T_TEXT, T_BUTTON, T_INPUT, T_DRAGBAR, T_BUMPIN, T_BUMPOUT, T_ICON, T_AREA = 1, 2, 3, 6, 7, 8, 9, 11
 local F_COLOR, F_TEXTURE, F_PICTURE = 0, 1, 2
 
 function M.open(name)
@@ -24,10 +27,13 @@ function M.open(name)
   if not def then return nil end
   local self = setmetatable({ def = def, name = name, texts = {}, hidden = {}, values = {}, items = {} }, M)
   self.x, self.y = def.x, def.y
-  -- Focusable fields: buttons, plus sliders (so a pad can reach them).
+  -- Focusable fields: buttons, input boxes, and selectable view areas.
+  -- (M:focus_area() adds others, e.g. the options sliders.)
   self.focus = {}
   for i, f in ipairs(def.fields) do
-    if f.type == T_BUTTON or f.type == T_SLIDER then self.focus[#self.focus + 1] = i end
+    if f.type == T_BUTTON or f.type == T_INPUT or (f.type == T_AREA and f.selectable ~= 0) then
+      self.focus[#self.focus + 1] = i
+    end
   end
   self.sel = 1
   for k, i in ipairs(self.focus) do if i - 1 == def.first then self.sel = k end end
@@ -40,6 +46,26 @@ function M:field(name)
 end
 
 function M:set_text(name, text) self.texts[name] = text end
+function M:text(name)
+  local f = self:field(name)
+  return self.texts[name] or (f and f.text) or ""
+end
+
+-- Make a view area focusable (e.g. a slider, or a region with no
+-- selectable flag that Raptua still wants a pad to reach).
+function M:focus_area(name)
+  for i, f in ipairs(self.def.fields) do
+    if f.name == name then
+      for _, k in ipairs(self.focus) do if k == i then return end end
+      self.focus[#self.focus + 1] = i
+    end
+  end
+end
+
+-- Select a field by name.
+function M:select(name)
+  for k, i in ipairs(self.focus) do if self.def.fields[i].name == name then self.sel = k end end
+end
 function M:hide(name) self.hidden[name] = true end
 function M:show(name) self.hidden[name] = nil end
 function M:set_item(name, item) self.items[name] = item end
@@ -97,7 +123,15 @@ function M:update()
   if rap.pressed("repeat_Up") or rap.pressed("pad_dpup") then moved_sel = self:move(0, -1) end
   if rap.pressed("repeat_Down") or rap.pressed("pad_dpdown") then moved_sel = self:move(0, 1) end
   local f = self:selected()
-  if f and f.type == T_SLIDER then
+  -- Typing into an input box.
+  if f and f.type == T_INPUT and usable(self, f) then
+    local cur = self:text(f.name)
+    local typed = rap.typed():upper():gsub("[^%w %-%.']", "")
+    if typed ~= "" then cur = (cur .. typed):sub(1, math.max(1, f.max - 1)) end
+    if rap.pressed("repeat_Backspace") then cur = cur:sub(1, -2) end
+    if cur ~= self:text(f.name) then self.texts[f.name] = cur; self.changed = f.name end
+  end
+  if f and f.type == T_AREA and self.values[f.name] ~= nil then
     local v = self.values[f.name] or 0
     if rap.held("Left") or rap.held("pad_dpleft") then v = v - 2 end
     if rap.held("Right") or rap.held("pad_dpright") then v = v + 2 end
@@ -113,11 +147,17 @@ function M:update()
   if rap.pressed("Escape") or rap.pressed("pad_b") or rap.pressed("mouse_right")
      or (rap.platform == "xenon" and rap.pressed("Left Alt")) then return "cancel" end
   f = self:selected()
-  if f and f.type == T_BUTTON and usable(self, f) then
+  if f and usable(self, f) and (f.type == T_BUTTON or (f.type == T_AREA and self.values[f.name] == nil)) then
     local click = rap.pressed("mouse_left") and inside(f, self.x, self.y, mx, my)
     if click or rap.pressed("Return") or rap.pressed("Space") or rap.pressed("pad_a") or rap.pressed("pad_start") then
       return f.name
     end
+  end
+  -- Enter in an input box moves on to the next field.
+  if f and f.type == T_INPUT and (rap.pressed("Return") or rap.pressed("pad_a")
+      or (rap.platform == "xenon" and rap.pressed("Space"))) then
+    self.entered = f.name
+    self:move(0, 1)
   end
 end
 
@@ -156,8 +196,8 @@ end
 -- printed down the field (font height + 3 apart); TEXT_POS x y, TEXT_RIGHT
 -- dx, TEXT_DOWN dy move the pen (inside the field), TEXT_COLOR c sets the
 -- colour, TEXT_IMAGE name x y draws a picture. A 0x1A byte ends it.
-local function draw_script(f, ox, oy)
-  local src = rap.read(f.item)
+local function draw_script(f, ox, oy, item)
+  local src = rap.read(item or f.item)
   if not src then return end
   local font = font_of(f)
   local _, fh = rap.text_size(font, "A")
@@ -203,7 +243,7 @@ function M:draw()
       elseif f.type == T_ICON then
         if item ~= "" then rap.pic(item, x, y) end
       elseif f.type == T_TEXT or f.type == T_DRAGBAR then
-        if item:match("_TXT$") then draw_script(f, ox, oy)
+        if item:match("_TXT$") then draw_script(f, ox, oy, item)
         elseif text ~= "" then draw_text(f, text, x, y, f.base) end
       elseif f.type == T_BUTTON then
         local down = f == sel and (rap.held("mouse_left") or rap.held("Return"))
@@ -224,10 +264,21 @@ function M:draw()
           rap.shade(x - 1, y - 1, f.w + 2, 1, lvl); rap.shade(x - 1, y + f.h, f.w + 2, 1, lvl)
           rap.shade(x - 1, y, 1, f.h, lvl); rap.shade(x + f.w, y, 1, f.h, lvl)
         end
-      elseif f.type == T_SLIDER then
-        local v = self.values[f.name] or 0
-        rap.pic("SLIDE_PIC", x + v - 2, y)
-        if f == sel then rap.shade(x, y + f.h, f.w, 1, (self.t // 8) % 2 == 0 and 2 or 1) end
+      elseif f.type == T_AREA then
+        local v = self.values[f.name]
+        if v ~= nil then
+          rap.pic("SLIDE_PIC", x + v - 2, y)
+          if f == sel then rap.shade(x, y + f.h, f.w, 1, (self.t // 8) % 2 == 0 and 2 or 1) end
+        elseif f == sel and not self.no_area_frame then
+          -- A view area under the pointer / pad: a soft frame round it.
+          local lvl = (self.t // 8) % 2 == 0 and 1 or 2
+          rap.shade(x, y, f.w, 1, lvl); rap.shade(x, y + f.h - 1, f.w, 1, lvl)
+          rap.shade(x, y + 1, 1, f.h - 2, lvl); rap.shade(x + f.w - 1, y + 1, 1, f.h - 2, lvl)
+        end
+      elseif f.type == T_INPUT then
+        local text = self:text(f.name)
+        local caret = (f == sel and (self.t // 16) % 2 == 0) and "_" or ""
+        draw_text(f, text .. caret, x, y, f.base)
       end
     end
   end

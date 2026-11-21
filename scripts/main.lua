@@ -14,7 +14,7 @@ function init()
       -- Demo / test mode: straight into the first mission, firing constantly.
       scenes.switch(require("scenes.play"), { map = 1, difficulty = 1, autofire = true })
     else
-      scenes.switch(require("scenes.mainmenu"))
+      scenes.switch(require("scenes.intro"))
     end
   end
 end
@@ -53,5 +53,19 @@ function selftest()
   s.push({ enter = function() log[#log + 1] = "b" end, leave = function() log[#log + 1] = "-b" end })
   s.pop()
   assert(table.concat(log, ",") == "a,b,-b")
+  -- Pilots: a new pilot, a wave flown, the ship's state taken back.
+  local pilot = require("game.pilot")
+  local pl = pilot.new("ANN", "ACE", 2, 1)
+  assert(pl.wave[1] == 1 and pl.items[0] == 1 and pl.money > 0)
+  local ship = { items = {}, money = 0, shield = 0, super = 0 }
+  pilot.equip(pl, ship)
+  assert(ship.items[0] == 1 and ship.money == pl.money)
+  ship.money, ship.items[7], ship.special = ship.money + 500, 1, 7
+  pilot.collect(pl, ship)
+  assert(pl.money == ship.money and pl.items[7] == 1 and pl.special == 7)
+  for _ = 1, pilot.WAVES do pilot.wave_done(pl, 1) end
+  assert(pilot.sector_done(pl, 1) and not pilot.sector_done(pl, 2))
+  local music = require("game.music")
+  assert(music.WAVES[1][1] == "RAP8" and #music.WAVES[1] == 9)
   return true
 end

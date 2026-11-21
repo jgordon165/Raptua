@@ -18,10 +18,11 @@ Early. What works today:
 - Music: the original MUS songs played on an emulated OPL3 (Sound Blaster 16) with the game's own GENMIDI instrument bank. The menu, the eight flight songs and the rest
 - Digitized sound effects for guns, hits, explosions, pickups, the low-shield warning, the crash and menus. Music and sound volume and detail are in the original Options window; the game speed (23.3 / 17.5 / 14 fps: the original's cadence on a fast PC, a 486, a 386) cycles with F5 on the main menu. All are saved between runs
 - The original menus, drawn from the window layouts in your data: main menu, options (detail, music and sound effect volume), difficulty (Training, Rookie, Veteran, Elite), quit confirmation, credits and order screens. Esc during a mission opens the main menu with Return to Game, as in the original
+- The pilot side, from your data's windows: start-up logos, registration (name, callsign, photo, difficulty), pilot loading and saving, the hangar, the ship computer (sector pick, secret-enemy lights) and the supply room (buy and sell, with each item's description). After each wave you land back at the hangar
 - Songs play where the original plays them: the main menu theme, the intro theme over a game in progress, each sector's own wave order, the death theme, and the credits songs in turn
 - An asset explorer (F1) for browsing everything in the archives
 
-Still to come (roughly in order): enemy shot types, weapons in the store and the store/hangar, boss music and the hangar/store, cutscenes (AGX), menus and saves, then other platforms the same way as Meguarace and Tetrispack. `docs/formats.md` lists what is known and what is still a guess.
+Still to come (roughly in order): enemy shot types, the non-missile special weapons, the intro, landing and death movies (AGX), help and the demo, the original pilot save format, then the SNES build. `docs/formats.md` lists what is known and what is still a guess.
 
 ## Running
 
