@@ -1,9 +1,9 @@
 #include "formats/glb.h"
+#include "formats/fsx.h"
 
 #include <algorithm>
 #include <cctype>
 #include <cstring>
-#include <filesystem>
 #include <fstream>
 
 namespace raptua {
@@ -126,14 +126,11 @@ Bytes GlbFile::build(const std::vector<std::pair<GlbEntry, Bytes>>& items) {
 }
 
 std::string find_file_nocase(const std::string& dir, const std::string& name) {
-    namespace fs = std::filesystem;
-    std::error_code ec;
-    fs::path direct = fs::path(dir) / name;
-    if (fs::exists(direct, ec)) return direct.string();
+    std::string direct = fsx::join(dir, name);
+    if (fsx::exists(direct)) return direct;
     std::string want = lower(name);
-    for (auto& de : fs::directory_iterator(dir, ec)) {
-        if (lower(de.path().filename().string()) == want) return de.path().string();
-    }
+    for (const auto& n : fsx::list(dir))
+        if (lower(n) == want) return fsx::join(dir, n);
     return {};
 }
 

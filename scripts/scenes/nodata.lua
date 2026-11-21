@@ -4,7 +4,9 @@ local M = {}
 
 function M.enter()
   local msg = "Raptua needs the data files from your own copy of Raptor: Call of the Shadows v1.2 "
-    .. "(FILE0000.GLB and FILE0001.GLB).\n\nCopy them next to raptua, or start it with --data <folder>.\n\n"
+    .. "(FILE0000.GLB and FILE0001.GLB).\n\n"
+    .. (rap.platform == "xenon" and "Copy them into the data folder inside the raptua folder on your USB stick.\n\n"
+        or "Copy them next to raptua, or start it with --data <folder>.\n\n")
     .. rap.data_error()
   io.stderr:write(msg, "\n")
   if not rap.headless() then rap.message("Raptua: game data not found", msg) end

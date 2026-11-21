@@ -448,6 +448,13 @@ void register_lua_api(lua_State* L, Engine* e) {
     lua_pushlightuserdata(L, e);
     luaL_setfuncs(L, fns, 1);
     lua_pushstring(L, RAPTUA_VERSION); lua_setfield(L, -2, "version");
+    // "xenon" on the Xbox 360 (a controller, no keyboard or mouse), else "pc".
+#ifdef RAPTUA_XENON_LAYOUT
+    lua_pushstring(L, "xenon");
+#else
+    lua_pushstring(L, "pc");
+#endif
+    lua_setfield(L, -2, "platform");
     lua_pushinteger(L, kScreenW); lua_setfield(L, -2, "W");
     lua_pushinteger(L, kScreenH); lua_setfield(L, -2, "H");
     lua_setglobal(L, "rap");

@@ -39,6 +39,9 @@ void Input::event(const SDL_Event& e) {
         mouse_dy += e.motion.yrel;
         mouse_moved = true;
         break;
+#ifndef RAPTUA_XENON_LAYOUT
+    // (The Xbox 360's SDL has no game-controller module: its pad arrives as
+    // keyboard keys instead, platform/xenon/sdl/SDL_xenon_video.c.)
     case SDL_CONTROLLERDEVICEADDED:
         if (!pad_) pad_ = SDL_GameControllerOpen(e.cdevice.which);
         break;
@@ -59,6 +62,7 @@ void Input::event(const SDL_Event& e) {
         if (e.caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT) set("pad_trigger_left", v > dead);
         break;
     }
+#endif
     default:
         break;
     }

@@ -13,6 +13,8 @@ local items = {
   { label = function() return "ASSET EXPLORER" end, ok = "explorer" },
   { label = function() return "QUIT" end, ok = "quit" },
 }
+-- On a console there's nothing to quit to: no QUIT row, and Back doesn't quit.
+if rap.platform == "xenon" then items[#items] = nil end
 
 function M.enter()
   rap.palette("PALETTE_DAT")
@@ -45,7 +47,7 @@ function M.update()
     if d ~= 0 then settings.cycle_cadence(d); moved = true end
   end
   if moved then rap.play(M.snd_move, 0.5) end
-  if util.pressed("back") then rap.quit() end
+  if util.pressed("back") and rap.platform ~= "xenon" then rap.quit() end
   if util.pressed("ok") and it.ok then
     if it.ok == "start" then scenes.switch(require("scenes.play"), { map = 1, difficulty = M.difficulty })
     elseif it.ok == "explorer" then scenes.push(require("scenes.explorer"))

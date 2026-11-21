@@ -26,13 +26,13 @@ void Audio::close() {
 }
 
 int Audio::add(Sound s) {
-    std::lock_guard lk(mu_);
+    compat::Lock lk(mu_);
     sounds_.push_back(std::move(s));
     return int(sounds_.size()) - 1;
 }
 
 void Audio::play(int id, float vol, float pan) {
-    std::lock_guard lk(mu_);
+    compat::Lock lk(mu_);
     if (id < 0 || id >= int(sounds_.size()) || sounds_[size_t(id)].samples.empty()) return;
     // Same effect already playing: restart it. Else a free voice, else the
     // one furthest through its sample.
@@ -50,27 +50,27 @@ void Audio::play(int id, float vol, float pan) {
 }
 
 void Audio::stop_all() {
-    std::lock_guard lk(mu_);
+    compat::Lock lk(mu_);
     for (auto& v : voices_) v.id = -1;
 }
 
 void Audio::set_music_bank(const GenMidi& bank) {
-    std::lock_guard lk(mu_);
+    compat::Lock lk(mu_);
     music_.set_bank(bank);
 }
 
 bool Audio::play_music(MusScore score, bool loop) {
-    std::lock_guard lk(mu_);
+    compat::Lock lk(mu_);
     return music_.play(std::move(score), loop);
 }
 
 void Audio::stop_music() {
-    std::lock_guard lk(mu_);
+    compat::Lock lk(mu_);
     music_.stop();
 }
 
 bool Audio::music_playing() {
-    std::lock_guard lk(mu_);
+    compat::Lock lk(mu_);
     return music_.playing();
 }
 
@@ -79,7 +79,7 @@ void Audio::callback(void* self_, Uint8* out_, int len) {
     auto* out = reinterpret_cast<float*>(out_);
     int frames = len / int(sizeof(float) * 2);
     std::fill(out, out + frames * 2, 0.0f);
-    std::lock_guard lk(self->mu_);
+    compat::Lock lk(self->mu_);
     if (self->music_.playing() && self->music_volume > 0.0f)
         self->music_.render(out, frames, self->rate_, self->music_volume * 1.1f);
     for (auto& v : self->voices_) {
