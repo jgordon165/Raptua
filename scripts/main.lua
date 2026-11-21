@@ -66,6 +66,16 @@ function selftest()
   assert(pl.money == ship.money and pl.items[7] == 1 and pl.special == 7)
   for _ = 1, pilot.WAVES do pilot.wave_done(pl, 1) end
   assert(pilot.sector_done(pl, 1) and not pilot.sector_done(pl, 2))
+  -- An original CHARnnnn.FIL pilot: build one, encipher it, read it back.
+  local orig = require("game.original_pilot")
+  local head = string.pack("<c20c12i4I4i4i4i4i4i4i4i4i4i4i4i4i4", ("BOB" .. ("\0"):rep(17)), ("RED" .. ("\0"):rep(9)),
+    2, 54321, 6, 0, 4, 0, 0, 3, 2, 0, 0, 0, 0, 0)
+  local objs = string.pack("<i4i4i4i4i4i4", 0, 0, 1, 0, 0, 1) .. string.pack("<i4i4i4i4i4i4", 0, 0, 75, 16, 0, 1)
+    .. string.pack("<i4i4i4i4i4i4", 0, 0, 1, 6, 0, 1)
+  assert(#head == 88 and orig.decipher(orig.encipher(head)) == head)
+  local op = assert(orig.parse(orig.encipher(head) .. orig.encipher(objs)))
+  assert(op.name == "BOB" and op.callsign == "RED" and op.photo == 3 and op.money == 54321)
+  assert(op.sector == 1 and op.wave[1] == 5 and op.difficulty == 2 and op.shield == 75 and op.special == 6 and op.items[6] == 1)
   local music = require("game.music")
   assert(music.WAVES[1][1] == "RAP8" and #music.WAVES[1] == 9)
   return true

@@ -1,6 +1,8 @@
 -- Pilots: who's flying, what they own and how far they've got. Saved as
 -- pilotN.lua in the user's preferences folder (Raptua's own format), with
--- pilots.lua listing the slots in use.
+-- pilots.lua listing the slots in use. The original's own saves
+-- (CHARnnnn.FIL in the data folder, game/original_pilot.lua) are listed too;
+-- once one is loaded it carries on here, and its .FIL file is left alone.
 local weapons = require("game.weapons")
 
 local M = {}
@@ -64,6 +66,11 @@ function M.save(p)
     p.slot = n
   end
   s[p.slot] = p.callsign ~= "" and p.callsign or p.name
+  if p.original then
+    s.originals = s.originals or {}
+    s.originals[p.original] = true
+    p.original = nil
+  end
   local data = {}
   for k, v in pairs(p) do if type(v) ~= "function" then data[k] = v end end
   local ok = rap.save_file(("pilot%d.lua"):format(p.slot), "return " .. serialize(data) .. "\n")
@@ -82,12 +89,22 @@ function M.list()
     local p = read_table(("pilot%d.lua"):format(n))
     if p then p.slot = n; out[#out + 1] = p end
   end
+  local done = s.originals or {}
+  for _, p in ipairs(require("game.original_pilot").list()) do
+    if not done[p.original] then out[#out + 1] = p end
+  end
   return out
 end
 
 function M.delete(p)
-  if not p.slot then return end
   local s = slots()
+  if p.original then   -- hide it here; the original's file isn't touched
+    s.originals = s.originals or {}
+    s.originals[p.original] = true
+    save_slots(s)
+    return
+  end
+  if not p.slot then return end
   s[p.slot] = nil
   save_slots(s)
   rap.save_file(("pilot%d.lua"):format(p.slot), "return nil\n")
