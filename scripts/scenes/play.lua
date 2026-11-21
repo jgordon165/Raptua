@@ -155,7 +155,7 @@ local function hud()
   if pl.special then
     local name = Weapons.LIB[pl.special].name
     local w = rap.text_size(M.font, name)
-    rap.text(M.font, name, (rap.W - w) // 2, rap.H - 10, util.color(140, 200, 255))
+    rap.text(M.font, name, (rap.W - w) // 2, rap.H - 20, util.color(140, 200, 255))   -- above WAVE / BOMBS
   end
   M.bonus:draw_message(M.font)
 end
