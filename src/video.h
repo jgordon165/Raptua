@@ -22,13 +22,28 @@ public:
     float fade = 1.0f;   // 0 = black, 1 = full palette
     Clip clip;
 
+private:
+    void build_shades();
+    std::array<std::array<uint8_t, 256>, 5> shades_{};
+    bool shade_valid_ = false;
+
+public:
+
     void clear(uint8_t c) { px.fill(c); }
     void rect(int x, int y, int w, int h, uint8_t c);
     void pixel(int x, int y, uint8_t c);
     // flip: bit0 = mirror horizontally, bit1 = vertically.
     // remap: if >= 0, every opaque pixel is drawn with that colour (flash/shadow).
     void pic(const Pic& p, int x, int y, int flip = 0, int remap = -1);
-    int text(const Font& f, const std::string& s, int x, int y, int color);   // returns width
+    // color >= 0: every glyph pixel in that colour; -1: the font's own pixel
+    // values; base_mode: glyph shade + color (how the original windows tint
+    // their text with a field's base colour).
+    int text(const Font& f, const std::string& s, int x, int y, int color, bool base_mode = false);   // returns width
+    // Darken (level < 0) or lighten (level > 0) what's already on screen in
+    // a rectangle, through the nearest palette colours: the original windows'
+    // bevels and shadows. Levels -2..2.
+    void shade(int x, int y, int w, int h, int level);
+    void palette_changed() { shade_valid_ = false; }
     static int text_width(const Font& f, const std::string& s);
 };
 

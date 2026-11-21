@@ -49,6 +49,12 @@ void Audio::play(int id, float vol, float pan) {
     v->r = vol * std::min(1.0f, 1.0f + pan);
 }
 
+bool Audio::playing(int id) {
+    compat::Lock lk(mu_);
+    for (auto& v : voices_) if (v.id == id) return true;
+    return false;
+}
+
 void Audio::stop_all() {
     compat::Lock lk(mu_);
     for (auto& v : voices_) v.id = -1;

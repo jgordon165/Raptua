@@ -112,7 +112,8 @@ add_library(raptua_formats STATIC
     src/formats/font.cpp
     src/formats/sound.cpp
     src/formats/mus.cpp
-    src/formats/fsx.cpp)
+    src/formats/fsx.cpp
+    src/formats/swd.cpp)
 target_include_directories(raptua_formats PUBLIC src)
 
 # ---- Music synth: no SDL, so the tests can render it ---------------------------

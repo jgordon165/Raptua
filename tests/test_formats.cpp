@@ -10,6 +10,7 @@
 #include "formats/pic.h"
 #include "formats/sound.h"
 #include "formats/mus.h"
+#include "formats/swd.h"
 #include "music.h"
 
 #include <cmath>
@@ -188,6 +189,36 @@ static void test_music() {
     CHECK(!m.playing());
 }
 
+static void test_swd() {
+    // A window with one button whose text sits after the fields.
+    Bytes w(120, 0);
+    auto at32 = [](Bytes& b, size_t o, int32_t v) { for (int i = 0; i < 4; ++i) b[o + size_t(i)] = uint8_t(uint32_t(v) >> (8 * i)); };
+    std::memcpy(&w[32], "TEST", 4);
+    std::memcpy(&w[48], "TEXTURE_PIC", 11);
+    at32(w, 68, 1); at32(w, 76, 120); at32(w, 96, 1);
+    at32(w, 100, 72); at32(w, 104, 23); at32(w, 108, 176); at32(w, 112, 154); at32(w, 116, 1);
+    Bytes f(148, 0);
+    at32(f, 0, 2); at32(f, 4, 7);
+    std::memcpy(&f[32], "GO", 2);
+    std::memcpy(&f[68], "FONT2_FNT", 9);
+    at32(f, 88, 82); at32(f, 92, 6); at32(f, 96, 1); at32(f, 120, 1);
+    at32(f, 124, 35); at32(f, 128, 40); at32(f, 132, 100); at32(f, 136, 12);
+    at32(f, 140, 148);   // the text right after this (only) field
+    w.insert(w.end(), f.begin(), f.end());
+    for (char c : std::string("HELLO")) w.push_back(uint8_t(c));
+    w.push_back(0);
+    SwdWindow win;
+    CHECK(decode_swd(w, win));
+    CHECK(win.name == "TEST" && win.item_name == "TEXTURE_PIC" && win.fill == 1 && win.w == 176 && win.shadow == 1);
+    CHECK(win.fields.size() == 1);
+    const SwdField& b = win.fields[0];
+    CHECK(b.type == int(SwdFieldType::Button) && b.id == 7 && b.name == "GO" && b.font_name == "FONT2_FNT");
+    CHECK(b.font_base == 82 && b.x == 35 && b.h == 12 && b.text == "HELLO");
+    Bytes bad = w;
+    bad[96] = 200;   // more fields than the data holds
+    CHECK(!decode_swd(bad, win));
+}
+
 static void test_real_data(const std::string& dir) {
     GlbSet set;
     std::string err;
@@ -257,6 +288,26 @@ static void test_real_data(const std::string& dir) {
         if (!ok) std::fprintf(stderr, "no digital sound for %s\n", fx);
         CHECK(ok);
     }
+    // Window layouts: structure only (their text stays in the player's data).
+    for (const char* name : {"MAIN_SWD", "OPTS_SWD", "ASKDIFF_SWD", "ASK_SWD", "MSG_SWD", "CREDIT_SWD", "ORDER_SWD",
+                             "HANGAR_SWD", "SHIPCOMP_SWD", "STORE_SWD"}) {
+        SwdWindow w;
+        bool ok = decode_swd(set.read(name), w);
+        if (!ok) std::fprintf(stderr, "can't decode %s\n", name);
+        CHECK(ok && !w.fields.empty() && w.w > 0 && w.h > 0);
+    }
+    {
+        SwdWindow m;
+        CHECK(decode_swd(set.read("MAIN_SWD"), m));
+        int buttons = 0;
+        for (const auto& f : m.fields) buttons += f.type == int(SwdFieldType::Button);
+        CHECK(buttons == 7);
+        SwdWindow o;
+        CHECK(decode_swd(set.read("OPTS_SWD"), o));
+        int labelled = 0, sliders = 0;
+        for (const auto& f : o.fields) { labelled += !f.text.empty() && f.type == int(SwdFieldType::Text); sliders += f.type == int(SwdFieldType::Slider); }
+        CHECK(labelled >= 3 && sliders == 2);
+    }
     Bytes txt = set.read("CREDITS_TXT");
     CHECK(!txt.empty());
 }
@@ -268,6 +319,7 @@ int main(int argc, char** argv) {
     test_level();
     test_font_sound();
     test_music();
+    test_swd();
     if (argc >= 3 && std::strcmp(argv[1], "--data") == 0) test_real_data(argv[2]);
     if (g_fail) { std::fprintf(stderr, "%d check(s) failed\n", g_fail); return 1; }
     std::printf("all format tests passed\n");

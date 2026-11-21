@@ -43,8 +43,11 @@ function M:take_spawns(difficulty)
     -- An actor appears when its row is 3 rows above the top of the screen.
     if a.y * TILE < self.cam - 3 * TILE then break end
     self.next_actor = self.next_actor + 1
-    -- level 3/4/5 = easy/medium/hard and up; other values are special tiers.
-    if a.level <= 2 + difficulty or a.level > 5 then out[#out + 1] = a end
+    -- Actor levels: 3 easy, 4 medium, 5 hard, 0..2 secret (not unlocked
+    -- yet). Training and rookie see easy only; veteran easy and medium;
+    -- elite all three.
+    local ok = a.level == 3 or (a.level == 4 and difficulty >= 2) or (a.level == 5 and difficulty >= 3)
+    if ok then out[#out + 1] = a end
   end
   return out
 end
