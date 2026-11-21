@@ -9,6 +9,10 @@
 #include "formats/level.h"
 #include "formats/pic.h"
 #include "formats/sound.h"
+#include "formats/mus.h"
+#include "music.h"
+
+#include <cmath>
 
 using namespace raptua;
 
@@ -118,6 +122,70 @@ static void test_font_sound() {
     CHECK(!decode_dmx_sound(other, s));
 }
 
+static Bytes tiny_mus() {
+    Bytes m = {'M', 'U', 'S', 0x1A};
+    Bytes score = {
+        0x40, 0x00, 30,          // controller 0 (instrument) = 30 on channel 0
+        0x90, 0x80 | 60, 100, 70,  // play note 60 vol 100, then delay 70 ticks
+        0x00, 60,                // release note 60
+        0x60,                    // score end
+    };
+    put16(m, int16_t(score.size())); put16(m, 18); put16(m, 1); put16(m, 0); put16(m, 1); put16(m, 0);
+    put16(m, 30);
+    m.insert(m.end(), score.begin(), score.end());
+    return m;
+}
+
+static GenMidi tiny_bank() {
+    Bytes b = {'#', 'O', 'P', 'L', '_', 'I', 'I', '#'};
+    for (int i = 0; i < 175; ++i) {
+        Bytes ins(36, 0);
+        ins[2] = 128;
+        // modulator: mult 1, fast attack, sustain; carrier the same, level 0
+        ins[4] = 0x21; ins[5] = 0xF2; ins[6] = 0x44; ins[9] = 0x10;
+        ins[10] = 0x06;
+        ins[11] = 0x21; ins[12] = 0xF2; ins[13] = 0x44; ins[16] = 0x00;
+        b.insert(b.end(), ins.begin(), ins.end());
+    }
+    for (int i = 0; i < 175; ++i) { Bytes n(32, 0); n[0] = 'X'; b.insert(b.end(), n.begin(), n.end()); }
+    GenMidi g;
+    CHECK(decode_genmidi(b, g));
+    return g;
+}
+
+static double rms(const std::vector<float>& v) {
+    double s = 0;
+    for (float x : v) s += double(x) * x;
+    return v.empty() ? 0 : std::sqrt(s / double(v.size()));
+}
+
+static void test_music() {
+    MusScore sc;
+    CHECK(decode_mus(tiny_mus(), sc));
+    CHECK(sc.instruments.size() == 1 && sc.instruments[0] == 30);
+    CHECK(sc.events.size() == 4 && sc.events[1].type == MusEventType::Play && sc.events[1].a == 60
+          && sc.events[1].b == 100 && sc.events[1].delay == 70 && sc.length_ticks == 70);
+    CHECK(sc.events.back().type == MusEventType::End);
+    Bytes bad = tiny_mus();
+    bad[0] = 'X';
+    CHECK(!decode_mus(bad, sc));
+
+    GenMidi g = tiny_bank();
+    CHECK(g.ins[30].voice[0].car.attack_decay == 0xF2 && g.ins[0].name == "X");
+
+    OplMusic m;
+    CHECK(!m.play(sc, false));   // no bank yet
+    m.set_bank(g);
+    CHECK(decode_mus(tiny_mus(), sc));
+    CHECK(m.play(sc, false));
+    std::vector<float> out(44100 / 4 * 2, 0.0f);   // the first quarter second: note sounding
+    m.render(out.data(), 44100 / 4, 44100, 1.0f);
+    CHECK(rms(out) > 0.01);
+    std::vector<float> rest(44100 * 2 * 2, 0.0f);   // past the end: stops by itself
+    m.render(rest.data(), 44100 * 2, 44100, 1.0f);
+    CHECK(!m.playing());
+}
+
 static void test_real_data(const std::string& dir) {
     GlbSet set;
     std::string err;
@@ -147,6 +215,41 @@ static void test_real_data(const std::string& dir) {
     CHECK(decode_font(set.read("GAME_FNT"), fn) && fn.has('A'));
     Sound s;
     CHECK(find_digital_sound(set, "EXPLO_FX", s) && !s.samples.empty());
+    GenMidi bank;
+    CHECK(decode_genmidi(set.read("GENMIDI_OP2"), bank) && !bank.ins[0].name.empty());
+    int songs = 0;
+    for (const char* name : {"APOGEE_MUS", "RINTRO_MUS", "MAINMENU_MUS", "HANGAR_MUS", "RAP1_MUS", "RAP2_MUS",
+                             "RAP3_MUS", "RAP4_MUS", "RAP5_MUS", "RAP6_MUS", "RAP7_MUS", "RAP8_MUS",
+                             "BOSS1_MUS", "BOSS2_MUS", "BOSS3_MUS", "BOSS4_MUS"}) {
+        MusScore sc;
+        std::string err;
+        bool ok = decode_mus(set.read(name), sc, &err);
+        if (!ok) std::fprintf(stderr, "%s: %s\n", name, err.c_str());
+        CHECK(ok && sc.length_ticks > 0);
+        songs += ok;
+    }
+    CHECK(songs == 16);
+    {   // RAP1 through the OPL3: audible, stereo, not clipping.
+        MusScore sc;
+        CHECK(decode_mus(set.read("RAP1_MUS"), sc));
+        OplMusic m;
+        m.set_bank(bank);
+        CHECK(m.play(sc, true));
+        std::vector<float> out(44100 * 4 * 2, 0.0f);
+        m.render(out.data(), 44100 * 4, 44100, 1.0f);
+        float peak = 0;
+        for (float x : out) peak = std::max(peak, std::fabs(x));
+        CHECK(rms(out) > 0.01 && peak < 1.5f);
+        CHECK(m.playing());
+    }
+    for (const char* fx : {"EXPLO_FX", "EXPLO2_FX", "BONUS_FX", "CRASH_FX", "GEXPLO_FX", "GUN_FX", "HIT_FX",
+                           "ESHOT_FX", "WARN_FX", "MISSLE_FX", "LASER_FX", "TURRET_FX", "FLYBY_FX", "SWEP_FX",
+                           "JETSND_FX", "BOSS_FX", "DOOR_FX", "EGRAB_FX", "THEME_FX"}) {
+        Sound snd;
+        bool ok = find_digital_sound(set, fx, snd);
+        if (!ok) std::fprintf(stderr, "no digital sound for %s\n", fx);
+        CHECK(ok);
+    }
     Bytes txt = set.read("CREDITS_TXT");
     CHECK(!txt.empty());
 }
@@ -157,6 +260,7 @@ int main(int argc, char** argv) {
     test_pic();
     test_level();
     test_font_sound();
+    test_music();
     if (argc >= 3 && std::strcmp(argv[1], "--data") == 0) test_real_data(argv[2]);
     if (g_fail) { std::fprintf(stderr, "%d check(s) failed\n", g_fail); return 1; }
     std::printf("all format tests passed\n");

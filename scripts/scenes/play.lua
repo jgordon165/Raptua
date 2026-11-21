@@ -24,6 +24,14 @@ function M.enter(arg)
   M.font = rap.find("GAME_FNT")
   M.paused = false
   M.autofire = arg.autofire
+  -- Eight flight songs for the sector's waves, in order, then round again.
+  -- (Which wave gets which song in the original is still to be checked
+  -- against RAP.EXE.)
+  rap.music(("RAP%d_MUS"):format((M.map - 1) % 8 + 1))
+  M.snd_warn = rap.sound("WARN_FX")
+  M.snd_crash = rap.sound("CRASH_FX")
+  M.snd_bomb = rap.sound("EXPLO2_FX")
+  M.warn_t = 0
   M.end_t = nil
   M.fade = 0
   rap.grab_mouse(not rap.headless())
@@ -67,9 +75,22 @@ function M.update()
   if util.pressed("special") and pl.bombs > 0 and not pl.dead then
     pl.bombs = pl.bombs - 1
     M.enemies:megabomb(M.shots, pl)
+    rap.play(M.snd_bomb, 1.0)
+  end
+  -- Low shield: the warning beep, once a second.
+  M.warn_t = math.max(0, M.warn_t - 1)
+  if not pl.dead and pl.shield > 0 and pl.shield <= 25 and M.warn_t == 0 then
+    rap.play(M.snd_warn, 0.8)
+    M.warn_t = 70
   end
 
-  if (pl.dead or lv:done()) and not M.end_t then M.end_t = 0 end
+  if (pl.dead or lv:done()) and not M.end_t then
+    M.end_t = 0
+    if pl.dead then
+      rap.play(M.snd_crash, 1.0)
+      M.shots:explode(pl.x + pl.w / 2, pl.y + pl.h / 2, true)
+    end
+  end
   if M.end_t then
     M.end_t = M.end_t + 1
     M.fade = math.max(0, 1 - M.end_t / 140)

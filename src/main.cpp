@@ -101,7 +101,9 @@ int main(int argc, char** argv) {
         std::fprintf(stderr, "window: %s\n", SDL_GetError());
         return 1;
     }
-    eng->audio_ok = !headless && eng->audio.open();
+    // Headless runs open audio too (CI sets SDL_AUDIODRIVER=dummy), so the
+    // boot tests exercise the music and sound paths.
+    eng->audio_ok = eng->audio.open();
 
     lua_State* L = luaL_newstate();
     luaL_openlibs(L);

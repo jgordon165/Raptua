@@ -54,12 +54,34 @@ void Audio::stop_all() {
     for (auto& v : voices_) v.id = -1;
 }
 
+void Audio::set_music_bank(const GenMidi& bank) {
+    std::lock_guard lk(mu_);
+    music_.set_bank(bank);
+}
+
+bool Audio::play_music(MusScore score, bool loop) {
+    std::lock_guard lk(mu_);
+    return music_.play(std::move(score), loop);
+}
+
+void Audio::stop_music() {
+    std::lock_guard lk(mu_);
+    music_.stop();
+}
+
+bool Audio::music_playing() {
+    std::lock_guard lk(mu_);
+    return music_.playing();
+}
+
 void Audio::callback(void* self_, Uint8* out_, int len) {
     auto* self = static_cast<Audio*>(self_);
     auto* out = reinterpret_cast<float*>(out_);
     int frames = len / int(sizeof(float) * 2);
     std::fill(out, out + frames * 2, 0.0f);
     std::lock_guard lk(self->mu_);
+    if (self->music_.playing() && self->music_volume > 0.0f)
+        self->music_.render(out, frames, self->rate_, self->music_volume * 1.1f);
     for (auto& v : self->voices_) {
         if (v.id < 0) continue;
         const auto& smp = self->sounds_[size_t(v.id)].samples;

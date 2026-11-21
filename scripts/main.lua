@@ -5,6 +5,7 @@ local scenes = require("core.scenes")
 function init()
   rap.tick_rate(70)            -- mode 13h refresh rate; game logic runs per tick
   if RAPTUA_SELFTEST then return end
+  require("core.settings").load()
   if not rap.have_data() then
     scenes.switch(require("scenes.nodata"))
   else
