@@ -5,6 +5,7 @@ local Level = require("game.level")
 local Player = require("game.player")
 local Shots = require("game.shots")
 local Enemies = require("game.enemies")
+local Bonus = require("game.bonus")
 
 local M = {}
 
@@ -19,6 +20,7 @@ function M.enter(arg)
   M.level = lv
   M.shots = Shots.new()
   M.enemies = Enemies.new("SPRITE1_ITM")
+  M.bonus = Bonus.new()
   M.font = rap.find("GAME_FNT")
   M.paused = false
   M.autofire = arg.autofire
@@ -44,13 +46,28 @@ function M.update()
   lv:update()
   for _, a in ipairs(lv:take_spawns(M.difficulty)) do M.enemies:spawn(a, lv) end
   pl.autofire = M.autofire
+  if M.autofire and not pl.autopilot then
+    pl.autopilot = function()
+      local best, by
+      for _, b in ipairs(M.bonus.list) do return b.x + b.w / 2 end   -- pickups first
+      for _, e in ipairs(M.enemies.list) do
+        if not e.dead and e.y > 0 and e.y < pl.y and (not by or e.y > by) then best, by = e.x + e.w / 2, e.y end
+      end
+      return best
+    end
+  end
   pl:update(M.shots)
   if M.autofire and rap.headless() and lv.cam % 400 < lv.speed then
     rap.screenshot(("autoplay_%05d.bmp"):format(math.floor(lv.cam)))
   end
   M.enemies:update(lv, pl, M.shots)
   M.shots:update(before - lv.cam)
-  M.enemies:collide(pl, M.shots)
+  M.bonus:update(before - lv.cam, pl)
+  M.enemies:collide(pl, M.shots, lv, M.bonus)
+  if util.pressed("special") and pl.bombs > 0 and not pl.dead then
+    pl.bombs = pl.bombs - 1
+    M.enemies:megabomb(M.shots, pl)
+  end
 
   if (pl.dead or lv:done()) and not M.end_t then M.end_t = 0 end
   if M.end_t then
@@ -80,6 +97,10 @@ local function hud()
   rap.rect(rap.W - 8, 11 + 90 - h, 4, h, pl.shield > 25 and util.color(60, 200, 80) or util.color(230, 50, 40))
   rap.text(M.font, ("$%d"):format(pl.money), 4, 2, util.color(255, 230, 90))
   rap.text(M.font, ("WAVE %d"):format(M.map), 4, rap.H - 10, util.color(150, 150, 150))
+  if pl.bombs > 0 then
+    rap.text(M.font, ("BOMBS %d"):format(pl.bombs), rap.W - 60, rap.H - 10, util.color(255, 150, 40))
+  end
+  M.bonus:draw_message(M.font)
 end
 
 function M.draw()
@@ -89,6 +110,7 @@ function M.draw()
   rap.clip(Level.X0, 0, 288, rap.H)
   M.enemies:draw(true)
   M.shots:draw_ground_fx()
+  M.bonus:draw()
   M.enemies:draw(false)
   M.player:draw()
   M.shots:draw()

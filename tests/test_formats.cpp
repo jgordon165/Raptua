@@ -94,6 +94,12 @@ static void test_level() {
     std::vector<SpriteDef> defs;
     CHECK(decode_sprite_lib(s, defs) && defs.size() == 2);
     CHECK(defs[0].name == "SHIP01G1_PIC" && defs[0].f[13] == 7 && defs[0].path_x[1] == -64);
+
+    Bytes fl;
+    for (int v : {420, 0, 15, 50, 5, 0, -1, 0}) put16(fl, int16_t(v));
+    std::vector<FlatDef> flats;
+    CHECK(decode_flats(fl, flats) && flats.size() == 2);
+    CHECK(flats[0].linkflat == 420 && flats[0].hits == 15 && flats[0].bounty == 50 && flats[1].hits == -1);
 }
 
 static void test_font_sound() {
@@ -129,6 +135,14 @@ static void test_real_data(const std::string& dir) {
     for (const auto& a : lv.actors) CHECK(a.slib >= 0 && size_t(a.slib) < defs.size());
     auto t = set.find("STARTG1TILES");
     CHECK(t && decode_pic(set.read(*t + 1), p) && p.width == 32 && p.height == 32);
+    std::vector<FlatDef> flats;
+    CHECK(decode_flats(set.read("FLATSG1_ITM"), flats) && flats.size() == 672);
+    int destructible = 0;
+    for (size_t i = 0; i < flats.size(); ++i) {
+        if (flats[i].hits < 0) CHECK(flats[i].linkflat == int(i) || flats[i].linkflat >= 0);
+        else { ++destructible; CHECK(flats[i].linkflat != int(i) && flats[i].linkflat < 672); }
+    }
+    CHECK(destructible > 0);
     Font fn;
     CHECK(decode_font(set.read("GAME_FNT"), fn) && fn.has('A'));
     Sound s;

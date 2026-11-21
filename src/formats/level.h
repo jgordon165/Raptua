@@ -42,7 +42,9 @@ constexpr size_t kSpriteDefSize = 528;
 
 bool decode_sprite_lib(const Bytes& data, std::vector<SpriteDef>& out);
 
-struct FlatDef { int16_t linkflat, bonus, bounty, pad; };
+// One per tile of a tile set: the tile it turns into when destroyed, an
+// always-zero field, hit points (-1 = indestructible) and the bounty paid.
+struct FlatDef { int16_t linkflat, unused, hits, bounty; };
 bool decode_flats(const Bytes& data, std::vector<FlatDef>& out);
 
 } // namespace raptua

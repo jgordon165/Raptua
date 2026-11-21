@@ -15,7 +15,7 @@ function M.wrap(raw)
     raw = raw,
     name = raw.name,
     item = f[1] or 0,          -- GLB handle in the build it was made for (not this one)
-    bonus = f[2] or -1,        -- ? bonus item dropped (-1 none)
+    bonus = f[2] or -1,        -- BONUSnn pickup dropped when destroyed (-1 none)
     frames = math.max(1, f[8] or 1),
     hits = math.max(1, f[14] or 1),
     bounty = f[15] or 0,

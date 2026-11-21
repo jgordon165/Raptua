@@ -77,10 +77,13 @@ raptua_warnings(raptua)
 target_compile_definitions(raptua PRIVATE RAPTUA_VERSION="${PROJECT_VERSION}")
 
 # Lua scripts sit next to the executable (scripts/), so the game can be
-# modified without a rebuild.
-add_custom_command(TARGET raptua POST_BUILD
+# modified without a rebuild. Copied on every build, not just when the
+# executable relinks, so a Lua-only change always reaches the build folder.
+add_custom_target(raptua_scripts ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/scripts $<TARGET_FILE_DIR:raptua>/scripts)
+            ${CMAKE_SOURCE_DIR}/scripts $<TARGET_FILE_DIR:raptua>/scripts
+    COMMENT "Copying Lua scripts")
+add_dependencies(raptua_scripts raptua)
 
 # ---- raptua-glb: list / extract / pack the GLB archives ----------------------
 add_executable(raptua-glb src/tools/glbtool.cpp)
