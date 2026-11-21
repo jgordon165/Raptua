@@ -15,15 +15,51 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 include(FetchContent)
 
+# ---- Xbox 360 ------------------------------------------------------------------
+# -DCMAKE_TOOLCHAIN_FILE=platform/xenon/toolchain.cmake builds for the console
+# with LibXenon (raptua.elf32, run from XeLL). -DCMAKE_TOOLCHAIN_FILE=<xsdk>/
+# cmake/xsdk.cmake (openpak/x360-sdk, which sets XSDK) builds a normal title:
+# raptua.xex. -DRAPTUA_XENON_SIM=ON builds the same SDL and layout on a PC,
+# to test them without a console (platform/xenon/xenon_platform_sim.c).
+option(RAPTUA_XENON_SIM "Build the Xbox 360's SDL and layout on a PC, for testing" OFF)
+if(RAPTUA_XENON_TARGET OR RAPTUA_XENON_SIM OR XSDK)
+    set(RAPTUA_XENON ON)
+    set(RAPTUA_TESTS OFF CACHE BOOL "" FORCE)
+else()
+    set(RAPTUA_XENON OFF)
+endif()
+
 # ---- SDL2 (static) ---------------------------------------------------------
 set(SDL_SHARED OFF CACHE BOOL "" FORCE)
 set(SDL_STATIC ON  CACHE BOOL "" FORCE)
 set(SDL_TEST   OFF CACHE BOOL "" FORCE)
-FetchContent_Declare(SDL2
-    GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-    GIT_TAG        release-2.30.9
-    GIT_SHALLOW    TRUE)
-FetchContent_MakeAvailable(SDL2)
+if(RAPTUA_XENON)
+    # Only SDL's sources: platform/xenon/sdl2_xenon.cmake builds them with the
+    # Xbox 360 drivers.
+    FetchContent_Declare(SDL2
+        GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+        GIT_TAG        release-2.30.9
+        GIT_SHALLOW    TRUE
+        SOURCE_SUBDIR  sources-only)
+    FetchContent_MakeAvailable(SDL2)
+    set(SDL2_SRC ${sdl2_SOURCE_DIR})
+    include(platform/xenon/sdl2_xenon.cmake)
+else()
+    FetchContent_Declare(SDL2
+        GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+        GIT_TAG        release-2.30.9
+        GIT_SHALLOW    TRUE)
+    FetchContent_MakeAvailable(SDL2)
+endif()
+if(XSDK)
+    # newlib's <limits.h> leaves LLONG_MAX out of C++ here, and Lua then refuses
+    # 64-bit integers (luaconf.h); C sees it, so give C++ the same (as
+    # platform/xenon/toolchain.cmake does for LibXenon).
+    add_compile_definitions(
+        $<$<COMPILE_LANGUAGE:CXX>:LLONG_MAX=__LONG_LONG_MAX__>
+        "$<$<COMPILE_LANGUAGE:CXX>:LLONG_MIN=(-__LONG_LONG_MAX__-1LL)>"
+        "$<$<COMPILE_LANGUAGE:CXX>:ULLONG_MAX=(__LONG_LONG_MAX__*2ULL+1ULL)>")
+endif()
 
 # ---- Lua 5.4 (built from source; upstream has no CMake) ---------------------
 FetchContent_Declare(lua
@@ -75,7 +111,8 @@ add_library(raptua_formats STATIC
     src/formats/level.cpp
     src/formats/font.cpp
     src/formats/sound.cpp
-    src/formats/mus.cpp)
+    src/formats/mus.cpp
+    src/formats/fsx.cpp)
 target_include_directories(raptua_formats PUBLIC src)
 
 # ---- Music synth: no SDL, so the tests can render it ---------------------------
@@ -95,6 +132,23 @@ target_link_libraries(raptua PRIVATE raptua_formats raptua_music lua_static SDL2
 if(TARGET SDL2::SDL2main)
     target_link_libraries(raptua PRIVATE SDL2::SDL2main)
 endif()
+if(RAPTUA_XENON)
+    # Paths and controls laid out for the console (src/main.cpp, lua_api.cpp).
+    target_compile_definitions(raptua PRIVATE RAPTUA_XENON_LAYOUT=1)
+endif()
+if(RAPTUA_XENON_TARGET)
+    # LibXenon and its FAT driver, then the .elf32 that XeLL loads.
+    target_link_libraries(raptua PRIVATE -Wl,--start-group fat xenon m c stdc++ -Wl,--end-group)
+    set_target_properties(raptua PROPERTIES SUFFIX ".elf")
+    add_custom_command(TARGET raptua POST_BUILD
+        COMMAND ${XENON_OBJCOPY} -O elf32-powerpc --adjust-vma 0x80000000
+                $<TARGET_FILE:raptua> $<TARGET_FILE_DIR:raptua>/raptua.elf32
+        COMMENT "raptua.elf32 for XeLL")
+endif()
+if(XSDK)
+    # A normal title: xsdk links its start-up and library, then packs raptua.xex.
+    xsdk_add_xex(raptua)
+endif()
 raptua_warnings(raptua)
 target_compile_definitions(raptua PRIVATE RAPTUA_VERSION="${PROJECT_VERSION}")
 
@@ -108,9 +162,11 @@ add_custom_target(raptua_scripts ALL
 add_dependencies(raptua_scripts raptua)
 
 # ---- raptua-glb: list / extract / pack the GLB archives ----------------------
-add_executable(raptua-glb src/tools/glbtool.cpp)
-target_link_libraries(raptua-glb PRIVATE raptua_formats)
-raptua_warnings(raptua-glb)
+if(NOT RAPTUA_XENON)
+    add_executable(raptua-glb src/tools/glbtool.cpp)
+    target_link_libraries(raptua-glb PRIVATE raptua_formats)
+    raptua_warnings(raptua-glb)
+endif()
 
 # ---- Tests ----------------------------------------------------------------------
 if(RAPTUA_TESTS)
@@ -135,6 +191,8 @@ if(RAPTUA_TESTS)
     endif()
 endif()
 
-install(TARGETS raptua raptua-glb RUNTIME DESTINATION .)
+if(NOT RAPTUA_XENON)
+    install(TARGETS raptua raptua-glb RUNTIME DESTINATION .)
+endif()
 install(DIRECTORY scripts DESTINATION .)
 install(FILES README.md DESTINATION .)

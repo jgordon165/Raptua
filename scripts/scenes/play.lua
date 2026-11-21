@@ -51,12 +51,20 @@ end
 function M.leave() rap.grab_mouse(false); rap.fade(1) end
 
 function M.update()
-  if rap.pressed("Escape") or rap.pressed("pad_start") then
-    if M.paused then scenes.switch(require("scenes.title")); return end
-    M.paused = true
-  end
   if M.paused then
-    if rap.pressed("Return") or rap.pressed("pad_a") or rap.pressed("mouse_left") then M.paused = false end
+    -- PC: Esc again quits to the title, Enter goes on. Xbox 360: START goes
+    -- on (it arrives as Esc), B quits to the title (it arrives as Alt).
+    if rap.platform == "xenon" then
+      if rap.pressed("Escape") then M.paused = false
+      elseif rap.pressed("Left Alt") then scenes.switch(require("scenes.title")); return end
+    else
+      if rap.pressed("Escape") then scenes.switch(require("scenes.title")); return end
+      if rap.pressed("Return") or rap.pressed("pad_a") or rap.pressed("mouse_left") then M.paused = false end
+    end
+    return
+  end
+  if rap.pressed("Escape") or rap.pressed("pad_start") then
+    M.paused = true
     return
   end
   M.fade = math.min(1, M.fade + 1 / 35)
@@ -174,12 +182,19 @@ function M.draw()
   M.shots:draw()
   rap.clip()
   hud()
-  local msg = M.paused and "PAUSED - ENTER TO RESUME, ESC TO QUIT"
+  local msg = M.paused and (rap.platform == "xenon" and "PAUSED\nSTART TO RESUME, B TO QUIT"
+                            or "PAUSED\nENTER TO RESUME, ESC TO QUIT")
     or (M.end_t and (M.player.dead and "SHIP DESTROYED" or "SECTOR CLEARED"))
   if msg then
-    local w = rap.text_size(M.font, msg)
-    rap.text(M.font, msg, (rap.W - w) // 2, 92, util.color(255, 255, 255))
+    -- One centred line per "\n", so long messages fit the 288-pixel playfield.
+    local y = 88
+    for line in msg:gmatch("[^\n]+") do
+      local w = rap.text_size(M.font, line)
+      rap.text(M.font, line, (rap.W - w) // 2, y, util.color(255, 255, 255))
+      y = y + 10
+    end
   end
+
 end
 
 return M

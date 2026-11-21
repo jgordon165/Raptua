@@ -39,6 +39,17 @@ Still to come (roughly in order): enemy shot types, weapons in the store and the
 
 Command line: `--data DIR`, `--scripts DIR`, `--scale N`, `--fullscreen`, `--autoplay` (straight into a mission: steers at targets, auto-fires, can't die), `--headless TICKS`, `--selftest`. Set `RAPTUA_TRACE=1` to log tile destruction, kills and pickups to stderr.
 
+## Xbox 360
+
+For a console that runs unsigned code. There are two builds, both from the `xbox360` workflow:
+
+- `raptua-xbox360-xex.zip`: a normal title, `raptua.xex` (built with xsdk). Launch it from the dashboard, Aurora or a file manager on BadUpdate + FreeMyXe, RGH or JTAG.
+- `raptua-xbox360-xell.zip`: `raptua.elf32` for XeLL (LibXenon).
+
+Copy the `raptua` folder to a FAT32 USB stick (or the hard drive), then put `FILE0000.GLB` and `FILE0001.GLB` in `raptua/data/`. Controls: stick/D-pad fly; A, X or right trigger fire; B next special; Y megabomb; START pause (B quits to the title while paused). The README inside each package has the details.
+
+To build: `cmake -DCMAKE_TOOLCHAIN_FILE=platform/xenon/toolchain.cmake` (LibXenon, in the `free60/libxenon` image) or `-DCMAKE_TOOLCHAIN_FILE=<xsdk>/cmake/xsdk.cmake`. `-DRAPTUA_XENON_SIM=ON` builds the same SDL and layout on a PC for testing (`XENON_SIM_*` variables in `platform/xenon/xenon_platform_sim.c`). The platform layer is shared with Meguarace.
+
 ## Building
 
 You need CMake 3.20+ and a C++20 compiler. CMake downloads SDL2, Lua and ymfm (the OPL3 emulator, BSD-3) itself.
@@ -65,7 +76,7 @@ On Linux, install the SDL2 build dependencies first (see `.github/actions/config
 
 ## CI and releases
 
-`CI-build` builds and tests Linux (GCC and Clang), macOS and Windows on every push. `release-all` builds the release zips for all platforms, and pushing a `v*` tag publishes them as a GitHub release.
+`CI-build` builds and tests Linux (GCC and Clang), macOS and Windows on every push. `release-all` builds the release zips for all platforms, and pushing a `v*` tag publishes them as a GitHub release. `xbox360` builds both Xbox 360 packages and the Linux stand-in on every push and pull request, and attaches the two packages to the release on a `v*` tag.
 
 ## Legal
 

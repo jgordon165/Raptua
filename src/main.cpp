@@ -11,14 +11,13 @@
 
 #include <cstdio>
 #include <cstring>
-#include <filesystem>
 #include <string>
 #include <vector>
 
+#include "formats/fsx.h"
 #include "lua_api.h"
 
 using namespace raptua;
-namespace fs = std::filesystem;
 
 namespace {
 
@@ -37,13 +36,19 @@ std::string locate_data(const std::string& given) {
     if (!given.empty()) return given;
     std::vector<std::string> c = {exe_dir(), ".", exe_dir() + "RAPTOR", "RAPTOR", exe_dir() + "data", "data"};
     for (auto& d : c) if (has_glb(d)) return d;
+#ifdef RAPTUA_XENON_LAYOUT
+    // The Xbox 360 starts with no arguments: the GLB files go in data/ in
+    // the port's folder on the USB stick (README, "Xbox 360").
+    return exe_dir() + "data";
+#else
     return exe_dir();
+#endif
 }
 
 std::string locate_scripts(const std::string& given) {
     if (!given.empty()) return given;
     for (auto d : {exe_dir() + "scripts", std::string("scripts")})
-        if (fs::exists(fs::path(d) / "main.lua")) return d;
+        if (fsx::exists(fsx::join(d, "main.lua"))) return d;
     return exe_dir() + "scripts";
 }
 
@@ -84,7 +89,13 @@ int main(int argc, char** argv) {
     }
     const bool headless = headless_ticks >= 0;
 
+#ifdef RAPTUA_XENON_LAYOUT
+    // The Xbox 360's SDL has no threads, so no timer or game-controller
+    // subsystems (the pad arrives as keys).
+    Uint32 sdl_flags = SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_AUDIO;
+#else
     Uint32 sdl_flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER;
+#endif
     if (SDL_Init(sdl_flags) != 0 && SDL_Init(SDL_INIT_TIMER) != 0) {
         std::fprintf(stderr, "SDL_Init: %s\n", SDL_GetError());
         return 1;

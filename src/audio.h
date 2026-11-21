@@ -2,7 +2,7 @@
 #pragma once
 #include <SDL.h>
 
-#include <mutex>
+#include "compat_mutex.h"
 #include <vector>
 
 #include "formats/sound.h"
@@ -36,7 +36,7 @@ private:
     std::vector<Sound> sounds_;
     OplMusic music_;
     Voice voices_[8];
-    std::mutex mu_;
+    compat::Mutex mu_;
 };
 
 } // namespace raptua
