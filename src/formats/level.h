@@ -34,9 +34,10 @@ bool decode_level(const Bytes& data, Level& out);
 struct SpriteDef {
     std::string name;                 // first frame's GLB item name
     std::array<int32_t, 26> f{};      // header ints after the name
-    std::array<std::array<int16_t, 24>, 6> table{};   // six short[24] tables
-    std::array<int16_t, 29> path_x{}, path_y{};       // flight path (guess)
-    int32_t tail = 0;
+    // Six short[24] per-gun/engine tables: shot type, engine flame x, y,
+    // width, shot origin x, y.
+    std::array<std::array<int16_t, 24>, 6> table{};
+    std::array<int16_t, 30> path_x{}, path_y{};       // flight path offsets
 };
 constexpr size_t kSpriteDefSize = 528;
 

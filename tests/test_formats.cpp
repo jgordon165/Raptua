@@ -95,9 +95,11 @@ static void test_level() {
     std::memcpy(s.data(), "SHIP01G1_PIC", 12);
     s[16 + 13 * 4] = 7;     // f[13]
     s[408 + 2] = 0xC0; s[408 + 3] = 0xFF;   // path_x[1] = -64
+    s[468 + 58] = 0x48;                     // path_y[29] = 72 (last entry, ends the record)
     std::vector<SpriteDef> defs;
     CHECK(decode_sprite_lib(s, defs) && defs.size() == 2);
-    CHECK(defs[0].name == "SHIP01G1_PIC" && defs[0].f[13] == 7 && defs[0].path_x[1] == -64);
+    CHECK(defs[0].name == "SHIP01G1_PIC" && defs[0].f[13] == 7 && defs[0].path_x[1] == -64
+          && defs[0].path_y[29] == 72);
 
     Bytes fl;
     for (int v : {420, 0, 15, 50, 5, 0, -1, 0}) put16(fl, int16_t(v));
@@ -201,6 +203,11 @@ static void test_real_data(const std::string& dir) {
     std::vector<SpriteDef> defs;
     CHECK(decode_sprite_lib(set.read("SPRITE1_ITM"), defs) && !defs.empty());
     for (const auto& a : lv.actors) CHECK(a.slib >= 0 && size_t(a.slib) < defs.size());
+    for (const auto& d : defs) {
+        CHECK(d.f[19] >= 0 && d.f[19] <= 30);            // numflight fits the 30-entry path
+        CHECK(d.f[20] >= 0 && d.f[20] <= d.f[19]);       // repos: a position on the path
+        CHECK(d.f[21] >= 0 && d.f[21] <= 5);             // flight type
+    }
     auto t = set.find("STARTG1TILES");
     CHECK(t && decode_pic(set.read(*t + 1), p) && p.width == 32 && p.height == 32);
     std::vector<FlatDef> flats;

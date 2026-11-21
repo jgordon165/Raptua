@@ -1,42 +1,48 @@
 -- The sprite library (SPRITEn_ITM): one 528-byte record per enemy/object
--- type. The engine hands the raw fields over; this file gives them names.
---
--- Status: names marked "?" are guesses from looking across all 131 records
--- of the shareware library and still need confirming against RAP.EXE
--- (see docs/formats.md). Fields are 1-based here (f[1] = first int).
+-- type. The engine hands the raw fields over; this file names them.
+-- f[] is 1-based here (f[1] = the first int after the name).
 local M = {}
 
--- Ground objects scroll with the map; everything else flies.
-local GROUND_PREFIX = { "TARGT", "BONUS", "BOUY", "COW", "DINO", "MOLE", "APE" }
+-- Flight types (f[22]).
+M.F_REPEAT, M.F_LINEAR, M.F_KAMI = 0, 1, 2
+M.F_GROUND, M.F_GROUNDLEFT, M.F_GROUNDRIGHT = 3, 4, 5
 
 function M.wrap(raw)
-  local f = raw.f
+  local f, t = raw.f, raw.table or {}
   local d = {
     raw = raw,
     name = raw.name,
-    item = f[1] or 0,          -- GLB handle in the build it was made for (not this one)
-    bonus = f[2] or -1,        -- BONUSnn pickup dropped when destroyed (-1 none)
+    item = f[1] or 0,            -- GLB handle in the original build (frames are found by name instead)
+    bonus = f[2] or -1,          -- pickup dropped when destroyed: an object number, -1 none
+    exptype = f[3] or 0,         -- explosion kind
+    shootspace = f[4] or 0,      -- frames between volleys
+    frame_rate = f[7] or 0,
     frames = math.max(1, f[8] or 1),
+    countdown = f[9] or 0,       -- distance before it may start shooting
     hits = math.max(1, f[14] or 1),
     bounty = f[15] or 0,
-    shots = f[24] or 0,        -- number of entries in the shot tables
-    tables = raw.table,        -- ? six short[24] tables: shot timing, kind, x, y ...
+    shootstart = f[16] or 0,     -- frames before the first volley
+    shootcnt = f[17] or 0,       -- volleys per burst
+    shootframe = f[18] or 0,     -- rest between bursts
+    movespeed = f[19] or 1,      -- pixels per game frame
+    numflight = f[20] or 0,      -- entries used in the flight path
+    repos = f[21] or 0,          -- REPEAT flights bounce back to this entry
+    flighttype = f[22] or 0,
+    numguns = f[23] or 0,
+    numengs = f[24] or 0,
+    shoot_type = t[1] or {},     -- per gun
+    shootx = t[5] or {},         -- per gun: where shots leave the sprite
+    shooty = t[6] or {},
   }
-  d.ground = false
-  for _, p in ipairs(GROUND_PREFIX) do
-    if d.name:sub(1, #p) == p then d.ground = true end
-  end
+  d.ground = d.flighttype >= M.F_GROUND
   return d
 end
 
--- Flight path points (guess: offsets in pixels). Trailing zeros dropped.
+-- The flight path's first `numflight` points, as offsets in pixels.
 function M.path_points(d)
-  local xs, ys, n = d.raw.path_x or {}, d.raw.path_y or {}, 0
-  for i = 1, math.max(#xs, #ys) do
-    if (xs[i] or 0) ~= 0 or (ys[i] or 0) ~= 0 then n = i end
-  end
+  local xs, ys = d.raw.path_x or {}, d.raw.path_y or {}
   local out = {}
-  for i = 1, n do out[i] = { xs[i] or 0, ys[i] or 0 } end
+  for i = 1, d.numflight or 0 do out[i] = { xs[i] or 0, ys[i] or 0 } end
   return out
 end
 
