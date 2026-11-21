@@ -87,9 +87,13 @@ end
 
 function M:box() return self.x + 6, self.y + 6, self.w - 12, self.h - 12 end
 
+-- Bank frame 0..6 (3 = level): also picks the wing gun positions.
+function M:bank_index()
+  return util.clamp(LEVEL_FRAME + math.floor(self.bank + 0.5), 0, math.max(0, #self.frames - 1))
+end
+
 function M:frame()
-  local i = LEVEL_FRAME + math.floor(self.bank + 0.5)
-  return self.frames[util.clamp(i, 0, #self.frames - 1) + 1]
+  return self.frames[self:bank_index() + 1]
 end
 
 function M:draw()
