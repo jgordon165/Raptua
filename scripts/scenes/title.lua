@@ -9,6 +9,7 @@ local items = {
   { label = function() return "START MISSION (TANGO SECTOR)" end, ok = "start" },
   { label = function() return ("MUSIC VOLUME  %d"):format(settings.music) end, adjust = "music" },
   { label = function() return ("SOUND VOLUME  %d"):format(settings.sound) end, adjust = "sound" },
+  { label = function() return settings.cadence_label() end, cycle = true },
   { label = function() return "ASSET EXPLORER" end, ok = "explorer" },
   { label = function() return "QUIT" end, ok = "quit" },
 }
@@ -37,6 +38,11 @@ function M.update()
       or (rap.pressed("repeat_Right") or rap.pressed("pad_dpright") or util.pressed("ok")) and 1 or 0
     if util.pressed("ok") and settings[it.adjust] == 10 then d = -10 end   -- Enter wraps 10 -> 0
     if d ~= 0 then settings.step(it.adjust, d); moved = true end
+  end
+  if it.cycle then
+    local d = (rap.pressed("repeat_Left") or rap.pressed("pad_dpleft")) and -1
+      or (rap.pressed("repeat_Right") or rap.pressed("pad_dpright") or util.pressed("ok")) and 1 or 0
+    if d ~= 0 then settings.cycle_cadence(d); moved = true end
   end
   if moved then rap.play(M.snd_move, 0.5) end
   if util.pressed("back") then rap.quit() end

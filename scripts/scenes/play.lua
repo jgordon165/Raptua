@@ -8,10 +8,12 @@ local Enemies = require("game.enemies")
 local Bonus = require("game.bonus")
 local Weapons = require("game.weapons")
 
--- The original steps its world once every 3 vertical blanks: 70 / 3 Hz.
--- Input and drawing run every 70 Hz tick; the world, enemies, shots and
--- scrolling run on game frames.
-local TICKS_PER_FRAME = 3
+local settings = require("core.settings")
+
+-- The world, enemies, shots and scrolling run on game frames: one every
+-- `settings.cadence` vertical blanks (3 = the original's ceiling of
+-- 23.3 fps, 4 = 17.5, 5 = 14; see core/settings.lua). Input and drawing
+-- run every 70 Hz tick.
 
 local M = {}
 
@@ -85,7 +87,7 @@ function M.update()
   end
 
   M.tick = M.tick + 1
-  if M.tick % TICKS_PER_FRAME == 0 then
+  if M.tick % settings.cadence == 0 then
     -- ---- one game frame -------------------------------------------------
     local before = lv.cam
     lv:update()                                   -- 1 pixel per frame

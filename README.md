@@ -16,7 +16,7 @@ Early. What works today:
 - A playable first pass of Tango Sector: the original Raptor sprite banking with movement, keyboard/mouse/game pad, twin guns, enemy fire, bounties, explosions, shield, sector-to-sector progression
 - Destructible map tiles (buildings, bridges and so on swap to their wrecked tiles and pay their bounty), ground targets, and crates that drop pickups (energy, megabombs, weapons kept for the store later)
 - Music: the original MUS songs played on an emulated OPL3 (Sound Blaster 16) with the game's own GENMIDI instrument bank. The menu, the eight flight songs and the rest
-- Digitized sound effects for guns, hits, explosions, pickups, the low-shield warning, the crash and menus. Music and sound volume are in the title menu and saved between runs
+- Digitized sound effects for guns, hits, explosions, pickups, the low-shield warning, the crash and menus. Music and sound volume and the game speed (23.3 / 17.5 / 14 fps: the original's cadence on a fast PC, a 486, a 386) are in the title menu and saved between runs
 - An asset explorer (F1) for browsing everything in the archives
 
 Still to come (roughly in order): enemy shot types, weapons in the store and the store/hangar, boss music and the hangar/store, cutscenes (AGX), menus and saves, then other platforms the same way as Meguarace and Tetrispack. `docs/formats.md` lists what is known and what is still a guess.
