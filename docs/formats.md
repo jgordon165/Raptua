@@ -23,6 +23,10 @@ The header is five `u32`: `a, b, spans, width, height`.
 - otherwise: runs `{i32 x, i32 y, i32 linear, i32 n, u8 pixels[n]}` (`linear = x + 320*y`), ending with a run where `linear == n == -1`. Pixels not in a run are transparent.
 - `a`/`b` (guess): full screens have `1, 1`. On sprites they vary and may be a hotspot or a draw mode.
 
+## Player ship `LPLAYER_PIC` (known)
+
+Seven 32×32 sprite frames: banked hard left (0), level (3), banked hard right (6). `SHIPGLOW_BLK` (4 frames, 56×56) is an expanding ring around the ship, probably the shield flash (guess).
+
 ## Palettes `*_DAT` (known)
 
 768 bytes of 6-bit VGA RGB. `PALETTE_DAT` is the game palette. `POGPAL`, `CYGPAL` and `TAIPAL` are for the Apogee, Cygnus and warning screens.
@@ -56,9 +60,9 @@ There are 131 records of 528 bytes in the shareware data.
 
 In the `f[]` ints: `f[1]` = item handle in the build the library was made for (it does not match v1.2's handles, so the engine looks frames up by name), `f[8]` = frame count, `f[14]` = hit points, `f[15]` = bounty, `f[24]` = number of shot-table entries. All of these are guesses that fit every record. The rest are unnamed.
 
-## Tile flags `FLATSGn_ITM` (guess)
+## Tile damage `FLATSGn_ITM` (known)
 
-8 bytes per tile: `i16 linkflat, i16 bonus, i16 bounty, i16 pad`.
+8 bytes per tile of the set (672 for G1): `i16 linkflat, i16 unused (0), i16 hits, i16 bounty`. `hits == -1` means the tile is indestructible, and its `linkflat` is itself. Otherwise, when its hit points run out, the tile becomes `linkflat`, its wrecked version (rubble, a broken bridge), and pays `bounty`. 156 of the 672 G1 tiles are destructible.
 
 ## Sounds `*_FX` (known)
 
@@ -70,6 +74,5 @@ DMX MUS (`MUS\x1A`), played through `GENMIDI_OP2` OPL patches. Not played yet.
 
 ## Open questions
 
-- Which item is the player's ship in flight (none of the named PICs match). `scripts/game/player.lua` draws a placeholder until it's found.
 - Enemy movement and firing rules (sprite library tables and paths).
 - AGX cutscene frames, SWD window layouts, REC demo macros.

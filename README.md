@@ -13,10 +13,11 @@ Early. What works today:
 - GLB archives: encrypted tables and items, lookup by name (`src/formats/glb.*`)
 - Images, sprites, 32×32 tiles, palettes, fonts and digitized sound effects
 - Levels: the 9×150 tile map scrolls, and enemies spawn from the map's actor list using the sprite library
-- A playable first pass of Tango Sector: movement (keyboard, mouse, game pad), twin guns, enemy fire, bounties, explosions, shield, sector-to-sector progression
+- A playable first pass of Tango Sector: the original Raptor sprite banking with movement, keyboard/mouse/game pad, twin guns, enemy fire, bounties, explosions, shield, sector-to-sector progression
+- Destructible map tiles (buildings, bridges and so on swap to their wrecked tiles and pay their bounty), ground targets, and crates that drop pickups (energy, megabombs, weapons kept for the store later)
 - An asset explorer (F1) for browsing everything in the archives
 
-Still to come (roughly in order): the real enemy flight and shot rules read out of `RAP.EXE`, the player's ship sprite, weapons and the store/hangar, MUS music through OPL (GENMIDI.OP2), cutscenes (AGX), menus and saves, then other platforms the same way as Meguarace and Tetrispack. `docs/formats.md` lists what is known and what is still a guess.
+Still to come (roughly in order): the real enemy flight and shot rules read out of `RAP.EXE`, weapons and the store/hangar, MUS music through OPL (GENMIDI.OP2), cutscenes (AGX), menus and saves, then other platforms the same way as Meguarace and Tetrispack. `docs/formats.md` lists what is known and what is still a guess.
 
 ## Running
 
@@ -27,12 +28,13 @@ Still to come (roughly in order): the real enemy flight and shot rules read out 
 |---|---|
 | Arrows / mouse / left stick | Fly |
 | Ctrl / Space / left mouse / A | Fire |
+| Alt / right mouse / B | Megabomb |
 | Esc | Pause (twice: quit to title) |
 | F1 | Asset explorer |
 | F11, Alt+Enter | Fullscreen |
 | F12 | Screenshot (BMP) |
 
-Command line: `--data DIR`, `--scripts DIR`, `--scale N`, `--fullscreen`, `--autoplay` (straight into a mission, auto-firing), `--headless TICKS`, `--selftest`.
+Command line: `--data DIR`, `--scripts DIR`, `--scale N`, `--fullscreen`, `--autoplay` (straight into a mission: steers at targets, auto-fires, can't die), `--headless TICKS`, `--selftest`. Set `RAPTUA_TRACE=1` to log tile destruction, kills and pickups to stderr.
 
 ## Building
 

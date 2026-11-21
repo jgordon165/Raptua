@@ -9,6 +9,9 @@ function M.new()
   self.player, self.enemy, self.fx = {}, {}, {}
   self.boom = util.frames("BOOM_PIC")
   self.airboom = util.frames("AIRBOOM_PIC")
+  self.gexplo = util.frames("GEXPLO_BLK")
+  self.sparks = util.frames("BSPARK_BLK")
+  self.snd_gexplo = rap.sound("GEXPLO_FX")
   self.eshot = util.frames("ESHOT_BLK")
   self.snd_gun = rap.sound("GUN_FX")
   self.snd_boom = rap.sound("EXPLO_FX")
@@ -40,6 +43,22 @@ function M:explode(x, y, air)
   rap.play(self.snd_boom, 0.8, (x - rap.W / 2) / (rap.W / 2))
 end
 
+-- A destroyed map tile: the big ground explosion, riding the map.
+function M:ground_explode(x, y)
+  local frames = #self.gexplo > 0 and self.gexplo or self.boom
+  if #frames == 0 then return end
+  local w, h = rap.pic_info(frames[1])
+  self.fx[#self.fx + 1] = { frames = frames, x = x - (w or 0) / 2, y = y - (h or 0) / 2, t = 0, scroll = true, rate = 1 }
+  rap.play(self.snd_gexplo or self.snd_boom, 0.8, (x - rap.W / 2) / (rap.W / 2))
+end
+
+-- A bullet striking something it didn't destroy.
+function M:spark(x, y)
+  if #self.sparks == 0 then return end
+  local w, h = rap.pic_info(self.sparks[1])
+  self.fx[#self.fx + 1] = { frames = self.sparks, x = x - (w or 0) / 2, y = y - (h or 0) / 2, t = 0, scroll = true, rate = 1 }
+end
+
 local function move(list, keep)
   local j = 1
   for i = 1, #list do
@@ -56,12 +75,12 @@ function M:update(scroll)
   move(self.fx, function(f)
     f.t = f.t + 1
     if f.scroll then f.y = f.y + scroll end
-    return f.t // 2 < #f.frames
+    return f.t // (f.rate or 2) < #f.frames
   end)
 end
 
 function M:draw_ground_fx()
-  for _, f in ipairs(self.fx) do if f.scroll then rap.pic(f.frames[f.t // 2 + 1], f.x, f.y) end end
+  for _, f in ipairs(self.fx) do if f.scroll then rap.pic(f.frames[f.t // (f.rate or 2) + 1], f.x, f.y) end end
 end
 
 function M:draw()
@@ -74,7 +93,7 @@ function M:draw()
       rap.rect(math.floor(s.x) - 1, math.floor(s.y) - 1, 3, 3, util.color(255, 80, 40))
     end
   end
-  for _, f in ipairs(self.fx) do if not f.scroll then rap.pic(f.frames[f.t // 2 + 1], f.x, f.y) end end
+  for _, f in ipairs(self.fx) do if not f.scroll then rap.pic(f.frames[f.t // (f.rate or 2) + 1], f.x, f.y) end end
 end
 
 return M

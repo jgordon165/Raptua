@@ -257,7 +257,7 @@ int l_flats(lua_State* L) {
     lua_createtable(L, int(fl.size()), 0);
     for (size_t i = 0; i < fl.size(); ++i) {
         lua_createtable(L, 0, 3);
-        set_int(L, "linkflat", fl[i].linkflat); set_int(L, "bonus", fl[i].bonus); set_int(L, "bounty", fl[i].bounty);
+        set_int(L, "linkflat", fl[i].linkflat); set_int(L, "hits", fl[i].hits); set_int(L, "bounty", fl[i].bounty);
         lua_rawseti(L, -2, lua_Integer(i + 1));
     }
     return 1;

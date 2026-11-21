@@ -17,6 +17,11 @@ function M.new(map_name, tileset)
   self.tile_base = {}
   for s = 0, 3 do self.tile_base[s] = rap.find(("STARTG%dTILES"):format(s + 1)) end
   self.tileset = tileset or 1
+  -- Per-tile damage rules (FLATSG1_ITM): hits = -1 means indestructible;
+  -- otherwise the tile becomes `linkflat` (its wreck: rubble, a broken
+  -- bridge) when its hit points run out, paying `bounty`.
+  self.flats = rap.flats("FLATSG1_ITM") or {}
+  self.hp = {}                        -- cell index -> remaining hit points
   self.cam = H * TILE - M.VIEW_H      -- world y of the screen's top line
   self.speed = 0.5                    -- pixels per tick
   self.next_actor = 1
@@ -41,6 +46,27 @@ function M:take_spawns(difficulty)
     if a.level <= 2 + difficulty or a.level > 5 then out[#out + 1] = a end
   end
   return out
+end
+
+-- Damage the map at screen point (sx, sy). Returns nil if the tile there
+-- can't be hurt, else { destroyed, bounty, x, y } with the tile's centre in
+-- screen coordinates.
+function M:hit_tile(sx, sy, dmg)
+  local col = math.floor((sx - M.X0) / TILE)
+  local row = math.floor((sy + self.cam) / TILE)
+  if col < 0 or col >= W or row < 0 or row >= H then return nil end
+  local i = row * W + col + 1
+  local cell = self.cells[i]
+  if cell[2] ~= 0 then return nil end          -- only set 0 has flats in v1.2
+  local fl = self.flats[cell[1] + 1]
+  if not fl or fl.hits < 0 then return nil end
+  self.hp[i] = (self.hp[i] or fl.hits) - dmg
+  local cx, cy = M.X0 + col * TILE + TILE / 2, row * TILE + TILE / 2 - self.cam
+  if self.hp[i] > 0 then return { destroyed = false, bounty = 0, x = cx, y = cy } end
+  self.hp[i] = nil
+  cell[1] = fl.linkflat
+  if os.getenv("RAPTUA_TRACE") then io.stderr:write(("tile %d,%d destroyed -> %d (+$%d)\n"):format(col, row, fl.linkflat, fl.bounty)) end
+  return { destroyed = true, bounty = fl.bounty, x = cx, y = cy }
 end
 
 -- World y -> screen y.

@@ -28,6 +28,7 @@ end
 function M:spawn(actor, lv)
   local def = self.lib[actor.slib]
   if not def then return end
+  if os.getenv("RAPTUA_TRACE") and def.bonus >= 0 then io.stderr:write(("spawn %s bonus=%d\n"):format(def.name, def.bonus)) end
   local frames = self:frames_of(def)
   if #frames == 0 then return end
   local w, h = rap.pic_info(frames[1])
@@ -38,6 +39,7 @@ function M:spawn(actor, lv)
   }
   if def.ground then
     e.wy = actor.y * 32 + 16 - h / 2          -- world position: rides the map
+    e.y = lv:sy(e.wy)
   else
     e.y = -h
     e.path = splib.path_points(def)
@@ -79,21 +81,40 @@ function M:update(lv, player, shots)
   for i = j, #self.list do self.list[i] = nil end
 end
 
--- Player bullets vs enemies; enemy bullets and bodies vs the player.
-function M:collide(player, shots)
+-- Player bullets vs enemies, then vs destructible map tiles; enemy bullets
+-- and bodies vs the player.
+function M:collide(player, shots, lv, bonus)
   for _, s in ipairs(shots.player) do
     for _, e in ipairs(self.list) do
+      -- Ground targets take hits anywhere in their box (buildings and crates
+      -- have gaps that pixel tests let bullets slip through); aircraft are
+      -- pixel-exact.
       if not e.dead and s.x >= e.x and s.x < e.x + e.w and s.y >= e.y and s.y < e.y + e.h
-         and rap.pic_hit(e.frames[1], s.x - e.x, s.y - e.y) then
+         and (e.def.ground or rap.pic_hit(e.frames[1], s.x - e.x, s.y - e.y)) then
         s.dead = true
         e.hp = e.hp - s.dmg
         e.flash = 3
+        if e.hp > 0 then shots:spark(s.x, s.y) end
         if e.hp <= 0 then
           e.dead = true
           player.money = player.money + e.def.bounty
           shots:explode(e.x + e.w / 2, e.y + e.h / 2, not e.def.ground)
+          if os.getenv("RAPTUA_TRACE") then io.stderr:write(("killed %s bonus=%d\n"):format(e.def.name, e.def.bonus)) end
+          if e.def.bonus >= 0 and bonus then bonus:drop(e.def.bonus, e.x + e.w / 2, e.y + e.h / 2) end
         end
         break
+      end
+    end
+    if not s.dead and lv then
+      local hit = lv:hit_tile(s.x, s.y, s.dmg)
+      if hit then
+        s.dead = true
+        if hit.destroyed then
+          player.money = player.money + hit.bounty
+          shots:ground_explode(hit.x, hit.y)
+        else
+          shots:spark(s.x, s.y)
+        end
       end
     end
   end
@@ -113,6 +134,22 @@ function M:collide(player, shots)
       shots:explode(e.x + e.w / 2, e.y + e.h / 2, true)
     end
   end
+end
+
+-- Megabomb: heavy damage to everything on screen.
+function M:megabomb(shots, player)
+  for _, e in ipairs(self.list) do
+    if not e.dead and e.y + e.h > 0 then
+      e.hp = e.hp - 50
+      e.flash = 6
+      if e.hp <= 0 then
+        e.dead = true
+        player.money = player.money + e.def.bounty
+        shots:explode(e.x + e.w / 2, e.y + e.h / 2, not e.def.ground)
+      end
+    end
+  end
+  for _, s in ipairs(shots.enemy) do s.dead = true end
 end
 
 function M:draw(ground)
