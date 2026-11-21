@@ -19,6 +19,7 @@ function M.wrap(raw)
     frame_rate = f[7] or 0,
     frames = math.max(1, f[8] or 1),
     countdown = f[9] or 0,       -- distance before it may start shooting
+    bossflag = f[13] or 0,       -- treated as a boss (weaker on the two easiest difficulties)
     hits = math.max(1, f[14] or 1),
     bounty = f[15] or 0,
     shootstart = f[16] or 0,     -- frames before the first volley
@@ -30,6 +31,7 @@ function M.wrap(raw)
     flighttype = f[22] or 0,
     numguns = f[23] or 0,
     numengs = f[24] or 0,
+    song = f[26] or -1,          -- not -1: a boss (keeps the boss sound going while it's on screen)
     shoot_type = t[1] or {},     -- per gun
     shootx = t[5] or {},         -- per gun: where shots leave the sprite
     shooty = t[6] or {},

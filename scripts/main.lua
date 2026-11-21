@@ -14,7 +14,7 @@ function init()
       -- Demo / test mode: straight into the first mission, firing constantly.
       scenes.switch(require("scenes.play"), { map = 1, difficulty = 1, autofire = true })
     else
-      scenes.switch(require("scenes.title"))
+      scenes.switch(require("scenes.mainmenu"))
     end
   end
 end

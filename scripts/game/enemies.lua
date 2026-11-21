@@ -24,8 +24,9 @@ M.__index = M
 
 local SCREEN_MID = 100     -- air paths are measured from the screen's middle line
 
-function M.new(lib_name)
+function M.new(lib_name, difficulty)
   local self = setmetatable({}, M)
+  self.difficulty = difficulty or 1
   self.lib = splib.load(lib_name) or {}
   self.list = {}
   self.frames = {}
@@ -57,13 +58,18 @@ function M:spawn(actor, sy_screen)
   local w, h = rap.pic_info(frames[1])
   local e = {
     def = def, frames = frames, w = w, h = h,
-    hp = def.hits, t = 0, flash = 0,
+    hp = def.hits, t = 0, flash = 0, boss = def.bossflag ~= 0, song = def.song ~= -1,
     x = level.X0 + actor.x * 32 + 16 - w / 2,
     y = sy_screen + 16 - h / 2,
   }
   e.countdown = def.countdown - e.y
   e.shoot_on = false
   e.volleys = def.shootcnt
+  -- Bosses on training and rookie: half the hit points, a quarter fewer volleys.
+  if e.boss and self.difficulty <= 1 then
+    e.hp = e.hp - e.hp // 2
+    e.volleys = e.volleys - e.volleys // 4
+  end
   e.wait = def.shootstart
   e.resting = 0
   local ft = def.flighttype
@@ -136,6 +142,14 @@ local function fire(e, player, shots)
   end
   e.volleys = e.volleys - 1
   if e.volleys < 1 then e.resting = math.max(1, d.shootframe) end
+end
+
+-- Is an enemy with a song in its record (a boss) alive on screen?
+function M:boss_present()
+  for _, e in ipairs(self.list) do
+    if e.song and not e.dead and e.y + e.h > 0 then return true end
+  end
+  return false
 end
 
 -- One game frame. `scroll` is how far the map moved this frame (0 or 1).

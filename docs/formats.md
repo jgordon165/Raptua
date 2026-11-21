@@ -75,6 +75,22 @@ DMX MUS: `"MUS\x1A", u16 score_len, u16 score_start, u16 channels, u16 secondary
 
 Raptua plays them on an emulated OPL3 (ymfm's YMF262), 18 voices, with left/right from the MUS pan controller.
 
+## Window layouts `*_SWD` (known)
+
+The menus and dialogs. Each starts with a 120-byte window header: eight `i32` (version, size, arrow-key flag, display, two unused, id, type), the window's name and fill item as `char[16]` each, then `i32` item, fill (0 colour, 1 texture tiled, 2 picture, 3 see-through), lock, offset of the first field, text offset, first focused field, option, colour, field count, x, y, width, height, shadow.
+
+Fields follow, 148 bytes each: `i32` type (1 text, 2 button, 3 input, 4 mark, 5 close, 6 drag bar / title, 7 sunken box, 8 raised box, 9 picture, 11 slider), id, hot key, keyboard flag, two unused, input options, button state; name, item and font name (`char[16]` each, with an `i32` item number after the item name); then `i32` font id, base colour, max characters, fill, colour, highlight colour, mark, save-under, shadow, selectable, x, y, width, height, text offset, unused.
+
+A field's text is `maxchars` bytes at (field start + text offset), in a text area after the last field. Text is drawn as glyph shade plus the field's base colour. A text field whose item is a `_TXT` item shows that text through its layout script: `TEXT_POS x y`, `TEXT_RIGHT dx`, `TEXT_DOWN dy`, `TEXT_COLOR c` and `TEXT_IMAGE name x y`, with other lines printed one font height + 3 pixels apart, ending at byte `0x1A`. Bevels shade the pixels underneath darker or lighter rather than drawing a fixed colour. Some labels (the detail button, a yes/no question, a message) were filled in by the program, so Raptua supplies its own wording for those.
+
+## Music cues (known)
+
+Apogee logo `APOGEE`, intro `RINTRO`, main menu `MAINMENU` (`RINTRO` when opened over a game), hangar and sector pick `HANGAR`, death `RAP5`, credits `BOSS4`, `BOSS2`, `BOSS3` in turn. Each wave plays from a per-sector table (`scripts/game/music.lua`); sector 1 is `RAP8, RAP2, RAP4, RAP7, RAP6, RAP2, RAP3, RAP4, RAP6`. An enemy whose sprite record names a song keeps the boss sound effect going while it's on screen.
+
+## Difficulty (known)
+
+Map actors carry a level: 3 easy, 4 medium, 5 hard, 0–2 secret. Training and Rookie spawn level 3 only, Veteran 3–4, Elite 3–5. On Training and Rookie, bosses get half their hit points and a quarter fewer volleys.
+
 ## Open questions
 
 - Enemy movement and firing rules (sprite library tables and paths).

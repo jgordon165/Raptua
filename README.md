@@ -16,7 +16,9 @@ Early. What works today:
 - A playable first pass of Tango Sector: the original Raptor sprite banking with movement, keyboard/mouse/game pad, twin guns, enemy fire, bounties, explosions, shield, sector-to-sector progression
 - Destructible map tiles (buildings, bridges and so on swap to their wrecked tiles and pay their bounty), ground targets, and crates that drop pickups (energy, megabombs, weapons kept for the store later)
 - Music: the original MUS songs played on an emulated OPL3 (Sound Blaster 16) with the game's own GENMIDI instrument bank. The menu, the eight flight songs and the rest
-- Digitized sound effects for guns, hits, explosions, pickups, the low-shield warning, the crash and menus. Music and sound volume and the game speed (23.3 / 17.5 / 14 fps: the original's cadence on a fast PC, a 486, a 386) are in the title menu and saved between runs
+- Digitized sound effects for guns, hits, explosions, pickups, the low-shield warning, the crash and menus. Music and sound volume and detail are in the original Options window; the game speed (23.3 / 17.5 / 14 fps: the original's cadence on a fast PC, a 486, a 386) cycles with F5 on the main menu. All are saved between runs
+- The original menus, drawn from the window layouts in your data: main menu, options (detail, music and sound effect volume), difficulty (Training, Rookie, Veteran, Elite), quit confirmation, credits and order screens. Esc during a mission opens the main menu with Return to Game, as in the original
+- Songs play where the original plays them: the main menu theme, the intro theme over a game in progress, each sector's own wave order, the death theme, and the credits songs in turn
 - An asset explorer (F1) for browsing everything in the archives
 
 Still to come (roughly in order): enemy shot types, weapons in the store and the store/hangar, boss music and the hangar/store, cutscenes (AGX), menus and saves, then other platforms the same way as Meguarace and Tetrispack. `docs/formats.md` lists what is known and what is still a guess.
@@ -32,7 +34,9 @@ Still to come (roughly in order): enemy shot types, weapons in the store and the
 | Ctrl / Space / left mouse / A | Fire (guns plus the selected special weapon) |
 | Alt / right mouse / B | Next special weapon |
 | Left Shift / middle mouse / Y | Megabomb |
-| Esc | Pause (twice: quit to title) |
+| Esc | Main menu (Return to Game goes back) |
+| P | Pause |
+| F5 (main menu) | Cycle game speed |
 | F1 | Asset explorer |
 | F11, Alt+Enter | Fullscreen |
 | F12 | Screenshot (BMP) |

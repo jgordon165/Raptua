@@ -6,6 +6,7 @@
 
 #include "formats/level.h"
 #include "formats/mus.h"
+#include "formats/swd.h"
 
 namespace raptua {
 
@@ -98,6 +99,7 @@ int l_palette(lua_State* L) {   // palette(name|handle) -> bool
     auto* e = E(L);
     auto h = handle_arg(L, e, 1);
     bool ok = h && decode_palette(e->glb.read(*h), e->screen.pal);
+    e->screen.palette_changed();
     lua_pushboolean(L, ok);
     return 1;
 }
@@ -107,6 +109,7 @@ int l_palette_rgb(lua_State* L) {   // index -> r, g, b  (or set with r, g, b)
     int i = int(luaL_checkinteger(L, 1)) & 255;
     if (lua_gettop(L) >= 4) {
         for (int c = 0; c < 3; ++c) p[size_t(i * 3 + c)] = uint8_t(luaL_checkinteger(L, 2 + c));
+        E(L)->screen.palette_changed();
         return 0;
     }
     for (int c = 0; c < 3; ++c) lua_pushinteger(L, p[size_t(i * 3 + c)]);
@@ -131,6 +134,12 @@ int l_rect(lua_State* L) {
 
 int l_pixel(lua_State* L) {
     E(L)->screen.pixel(int(luaL_checkinteger(L, 1)), int(luaL_checkinteger(L, 2)), uint8_t(luaL_checkinteger(L, 3)));
+    return 0;
+}
+
+int l_shade(lua_State* L) {   // shade(x, y, w, h, level): -2..2, darker..lighter
+    E(L)->screen.shade(int(luaL_checkinteger(L, 1)), int(luaL_checkinteger(L, 2)), int(luaL_checkinteger(L, 3)),
+                       int(luaL_checkinteger(L, 4)), int(luaL_checkinteger(L, 5)));
     return 0;
 }
 
@@ -175,12 +184,12 @@ int l_pic_hit(lua_State* L) {
     return 1;
 }
 
-int l_text(lua_State* L) {   // text(font, str, x, y [, color]) -> width
+int l_text(lua_State* L) {   // text(font, str, x, y [, color [, base_mode]]) -> width
     auto* e = E(L);
     const Font* f = get_font(L, e, 1);
     if (!f) { lua_pushinteger(L, 0); return 1; }
     int w = e->screen.text(*f, luaL_checkstring(L, 2), int(luaL_checknumber(L, 3)),
-                           int(luaL_checknumber(L, 4)), int(luaL_optinteger(L, 5, -1)));
+                           int(luaL_checknumber(L, 4)), int(luaL_optinteger(L, 5, -1)), lua_toboolean(L, 6));
     lua_pushinteger(L, w);
     return 1;
 }
@@ -250,6 +259,34 @@ int l_sprite_lib(lua_State* L) {   // -> array of {name, f = {26 ints}, table = 
     return 1;
 }
 
+// swd(name) -> window table with its fields (formats/swd.h), or nil.
+int l_swd(lua_State* L) {
+    auto* e = E(L);
+    auto h = handle_arg(L, e, 1);
+    SwdWindow w;
+    if (!h || !decode_swd(e->glb.read(*h), w)) { lua_pushnil(L); return 1; }
+    auto str = [&](const char* k, const std::string& v) { lua_pushstring(L, v.c_str()); lua_setfield(L, -2, k); };
+    lua_createtable(L, 0, 12);
+    str("name", w.name); str("item", w.item_name);
+    set_int(L, "fill", w.fill); set_int(L, "color", w.color); set_int(L, "first", w.first_field);
+    set_int(L, "x", w.x); set_int(L, "y", w.y); set_int(L, "w", w.w); set_int(L, "h", w.h);
+    set_int(L, "shadow", w.shadow);
+    lua_createtable(L, int(w.fields.size()), 0);
+    for (size_t i = 0; i < w.fields.size(); ++i) {
+        const auto& f = w.fields[i];
+        lua_createtable(L, 0, 18);
+        set_int(L, "type", f.type); set_int(L, "id", f.id); set_int(L, "hotkey", f.hotkey);
+        str("name", f.name); str("item", f.item_name); str("font", f.font_name); str("text", f.text);
+        set_int(L, "base", f.font_base); set_int(L, "max", f.max_chars); set_int(L, "fill", f.fill);
+        set_int(L, "color", f.color); set_int(L, "lite", f.lite); set_int(L, "shadow", f.shadow);
+        set_int(L, "selectable", f.selectable);
+        set_int(L, "x", f.x); set_int(L, "y", f.y); set_int(L, "w", f.w); set_int(L, "h", f.h);
+        lua_rawseti(L, -2, lua_Integer(i + 1));
+    }
+    lua_setfield(L, -2, "fields");
+    return 1;
+}
+
 int l_flats(lua_State* L) {
     auto* e = E(L);
     auto h = handle_arg(L, e, 1);
@@ -286,6 +323,12 @@ int l_play(lua_State* L) {
     if (e->audio_ok && !lua_isnoneornil(L, 1))
         e->audio.play(int(luaL_checkinteger(L, 1)), float(luaL_optnumber(L, 2, 1.0)), float(luaL_optnumber(L, 3, 0.0)));
     return 0;
+}
+
+int l_sound_playing(lua_State* L) {
+    auto* e = E(L);
+    lua_pushboolean(L, e->audio_ok && !lua_isnoneornil(L, 1) && e->audio.playing(int(luaL_checkinteger(L, 1))));
+    return 1;
 }
 
 int l_volume(lua_State* L) {
@@ -431,11 +474,11 @@ void register_lua_api(lua_State* L, Engine* e) {
         {"find", l_find}, {"item", l_item}, {"item_count", l_item_count}, {"file_count", l_file_count},
         {"read", l_read},
         {"palette", l_palette}, {"palette_rgb", l_palette_rgb}, {"fade", l_fade},
-        {"clear", l_clear}, {"rect", l_rect}, {"pixel", l_pixel}, {"clip", l_clip},
+        {"clear", l_clear}, {"rect", l_rect}, {"shade", l_shade}, {"pixel", l_pixel}, {"clip", l_clip},
         {"pic", l_pic}, {"pic_info", l_pic_info}, {"pic_hit", l_pic_hit},
         {"text", l_text}, {"text_size", l_text_size},
-        {"level", l_level}, {"sprite_lib", l_sprite_lib}, {"flats", l_flats},
-        {"sound", l_sound}, {"play", l_play}, {"volume", l_volume}, {"stop_sounds", l_stop_sounds},
+        {"level", l_level}, {"sprite_lib", l_sprite_lib}, {"flats", l_flats}, {"swd", l_swd},
+        {"sound", l_sound}, {"play", l_play}, {"sound_playing", l_sound_playing}, {"volume", l_volume}, {"stop_sounds", l_stop_sounds},
         {"music", l_music}, {"music_stop", l_music_stop}, {"music_volume", l_music_volume},
         {"music_playing", l_music_playing},
         {"held", l_held}, {"pressed", l_pressed}, {"typed", l_typed},

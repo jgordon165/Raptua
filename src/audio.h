@@ -18,6 +18,7 @@ public:
     // vol 0..1, pan -1..1. A sound already playing on `exclusive` voices is
     // restarted rather than stacked (the original's per-effect priority).
     void play(int id, float vol, float pan);
+    bool playing(int id);          // is sound `id` on any voice?
     void stop_all();
     float master = 1.0f;         // sound effects
     float music_volume = 0.7f;

@@ -40,7 +40,7 @@ void Screen::pic(const Pic& p, int x, int y, int flip, int remap) {
         for (int i = 0; i < s.count; ++i) put(s.x + i, s.y, p.pixels[s.offset + size_t(i)]);
 }
 
-int Screen::text(const Font& f, const std::string& s, int x, int y, int color) {
+int Screen::text(const Font& f, const std::string& s, int x, int y, int color, bool base_mode) {
     int x0 = x;
     for (unsigned char c : s) {
         if (!f.has(c)) { x += f.width[' '] ? f.width[' '] : f.height / 2; continue; }
@@ -49,11 +49,44 @@ int Screen::text(const Font& f, const std::string& s, int x, int y, int color) {
         for (int yy = 0; yy < f.height; ++yy)
             for (int xx = 0; xx < w; ++xx) {
                 uint8_t v = g[yy * w + xx];
-                if (v) pixel(x + xx, y + yy, color >= 0 ? uint8_t(color) : v);
+                if (!v) continue;
+                uint8_t c = base_mode ? uint8_t(v + color) : color >= 0 ? uint8_t(color) : v;
+                pixel(x + xx, y + yy, c);
             }
         x += w + 1;
     }
     return x - x0;
+}
+
+void Screen::build_shades() {
+    static const float kScale[5] = {0.45f, 0.70f, 1.0f, 1.30f, 1.65f};
+    for (int l = 0; l < 5; ++l) {
+        for (int i = 0; i < 256; ++i) {
+            float r = pal[size_t(i * 3)] * kScale[l], g = pal[size_t(i * 3 + 1)] * kScale[l], b = pal[size_t(i * 3 + 2)] * kScale[l];
+            if (l > 2) { r += 12 * (l - 2); g += 12 * (l - 2); b += 12 * (l - 2); }
+            int best = i;
+            float bd = 1e30f;
+            for (int j = 0; j < 256; ++j) {
+                float dr = pal[size_t(j * 3)] - r, dg = pal[size_t(j * 3 + 1)] - g, db = pal[size_t(j * 3 + 2)] - b;
+                float dist = dr * dr + dg * dg + db * db;
+                if (dist < bd) { bd = dist; best = j; }
+            }
+            shades_[size_t(l)][size_t(i)] = uint8_t(best);
+        }
+    }
+    shade_valid_ = true;
+}
+
+void Screen::shade(int x, int y, int w, int h, int level) {
+    if (!shade_valid_) build_shades();
+    const auto& lut = shades_[size_t(std::clamp(level, -2, 2) + 2)];
+    int x0 = std::max(x, clip.x0), y0 = std::max(y, clip.y0);
+    int x1 = std::min(x + w, clip.x1), y1 = std::min(y + h, clip.y1);
+    for (int yy = y0; yy < y1; ++yy)
+        for (int xx = x0; xx < x1; ++xx) {
+            uint8_t& p = px[size_t(yy * kScreenW + xx)];
+            p = lut[p];
+        }
 }
 
 int Screen::text_width(const Font& f, const std::string& s) {

@@ -9,6 +9,8 @@ local Bonus = require("game.bonus")
 local Weapons = require("game.weapons")
 
 local settings = require("core.settings")
+local music = require("game.music")
+local dialogs = require("ui.dialogs")
 
 -- The world, enemies, shots and scrolling run on game frames: one every
 -- `settings.cadence` vertical blanks (3 = the original's ceiling of
@@ -19,29 +21,28 @@ local M = {}
 
 function M.enter(arg)
   arg = arg or {}
+  M.sector = arg.sector or 1
   M.map = arg.map or 1
-  M.difficulty = arg.difficulty or 1
+  M.difficulty = arg.difficulty or 1   -- 0 training, 1 rookie, 2 veteran, 3 elite
   M.player = arg.player or Player.new()
   M.player.shield, M.player.dead = math.max(M.player.shield, 100), false
   local lv, err = Level.new(("MAP%dG1_MAP"):format(M.map))
-  if not lv then io.stderr:write(err, "\n"); scenes.switch(require("scenes.title")); return end
+  if not lv then io.stderr:write(err, "\n"); scenes.switch(require("scenes.mainmenu")); return end
   M.level = lv
   M.shots = Shots.new()
-  M.enemies = Enemies.new("SPRITE1_ITM")
+  M.enemies = Enemies.new("SPRITE1_ITM", M.difficulty)
   M.bonus = Bonus.new()
   M.weapons = Weapons.new()
   M.tick = 0
   M.font = rap.find("GAME_FNT")
-  M.paused = false
+  M.pause = nil
   M.autofire = arg.autofire
-  -- Eight flight songs for the sector's waves, in order, then round again.
-  -- (Which wave gets which song in the original is still to be checked
-  -- against RAP.EXE.)
-  rap.music(("RAP%d_MUS"):format((M.map - 1) % 8 + 1))
+  music.wave(M.sector, M.map)
   M.snd_warn = rap.sound("WARN_FX")
   M.snd_crash = rap.sound("CRASH_FX")
   M.snd_bomb = rap.sound("EXPLO2_FX")
   M.snd_swep = rap.sound("SWEP_FX")
+  M.snd_boss = rap.sound("BOSS_FX")
   M.warn_t = 0
   M.end_t = nil
   M.fade = 0
@@ -50,21 +51,27 @@ end
 
 function M.leave() rap.grab_mouse(false); rap.fade(1) end
 
+-- Called by the main menu's RETURN: back to the wave where it was.
+function M.resumed()
+  rap.palette("PALETTE_DAT")
+  util.reset_colors()
+  rap.grab_mouse(not rap.headless())
+  music.wave(M.sector, M.map)
+end
+
 function M.update()
-  if M.paused then
-    -- PC: Esc again quits to the title, Enter goes on. Xbox 360: START goes
-    -- on (it arrives as Esc), B quits to the title (it arrives as Alt).
-    if rap.platform == "xenon" then
-      if rap.pressed("Escape") then M.paused = false
-      elseif rap.pressed("Left Alt") then scenes.switch(require("scenes.title")); return end
-    else
-      if rap.pressed("Escape") then scenes.switch(require("scenes.title")); return end
-      if rap.pressed("Return") or rap.pressed("pad_a") or rap.pressed("mouse_left") then M.paused = false end
-    end
+  if M.pause then
+    if M.pause:update() then M.pause = nil end
     return
   end
+  -- Esc (START on a pad / the Xbox 360) opens the main menu over the game,
+  -- with RETURN, as in the original.
   if rap.pressed("Escape") or rap.pressed("pad_start") then
-    M.paused = true
+    scenes.push(require("scenes.mainmenu"), { resume = M })
+    return
+  end
+  if rap.pressed("P") or rap.pressed("Pause") or rap.pressed("pad_back") then
+    M.pause = dialogs.message("PAUSED - PRESS ANY KEY")
     return
   end
   M.fade = math.min(1, M.fade + 1 / 35)
@@ -103,6 +110,9 @@ function M.update()
     for _, a in ipairs(lv:take_spawns(M.difficulty)) do M.enemies:spawn(a, a.y * 32 - lv.cam) end
     if not pl.dead and (util.held("fire") or pl.autofire) then M.weapons:fire_all(pl, M.enemies) end
     M.enemies:step(scroll, pl, M.shots)
+    -- A boss on screen (an enemy whose record names a song) keeps the boss
+    -- sound going, as the original does.
+    if M.enemies:boss_present() and not rap.sound_playing(M.snd_boss) then rap.play(M.snd_boss, 0.8) end
     M.weapons:step(pl, M.enemies, M.shots, lv, M.bonus)
     M.shots:update(scroll)
     M.bonus:update(scroll, pl)
@@ -121,6 +131,7 @@ function M.update()
   if (pl.dead or lv:done()) and not M.end_t then
     M.end_t = 0
     if pl.dead then
+      music.death()
       rap.play(M.snd_crash, 1.0)
       M.shots:explode(pl.x + pl.w / 2, pl.y + pl.h / 2, true)
     end
@@ -130,13 +141,13 @@ function M.update()
     M.fade = math.max(0, 1 - M.end_t / 140)
     if M.end_t > 160 then
       if pl.dead then
-        scenes.switch(require("scenes.title"))
+        scenes.switch(require("scenes.mainmenu"))
       else
         local nxt = M.map + 1
         if rap.find(("MAP%dG1_MAP"):format(nxt)) then
-          scenes.switch(M, { map = nxt, difficulty = M.difficulty, player = pl, autofire = M.autofire })
+          scenes.switch(M, { sector = M.sector, map = nxt, difficulty = M.difficulty, player = pl, autofire = M.autofire })
         else
-          scenes.switch(require("scenes.title"))
+          scenes.switch(require("scenes.mainmenu"))
         end
       end
     end
@@ -182,9 +193,7 @@ function M.draw()
   M.shots:draw()
   rap.clip()
   hud()
-  local msg = M.paused and (rap.platform == "xenon" and "PAUSED\nSTART TO RESUME, B TO QUIT"
-                            or "PAUSED\nENTER TO RESUME, ESC TO QUIT")
-    or (M.end_t and (M.player.dead and "SHIP DESTROYED" or "SECTOR CLEARED"))
+  local msg = M.end_t and (M.player.dead and "SHIP DESTROYED" or "SECTOR CLEARED")
   if msg then
     -- One centred line per "\n", so long messages fit the 288-pixel playfield.
     local y = 88
@@ -195,6 +204,7 @@ function M.draw()
     end
   end
 
+  if M.pause then M.pause:draw() end
 end
 
 return M
