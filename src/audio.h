@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "formats/sound.h"
+#include "music.h"
 
 namespace raptua {
 
@@ -18,7 +19,14 @@ public:
     // restarted rather than stacked (the original's per-effect priority).
     void play(int id, float vol, float pan);
     void stop_all();
-    float master = 1.0f;
+    float master = 1.0f;         // sound effects
+    float music_volume = 0.7f;
+
+    // Music. play_music() swaps the song in under the mixer lock.
+    void set_music_bank(const GenMidi& bank);
+    bool play_music(MusScore score, bool loop);
+    void stop_music();
+    bool music_playing();
 
 private:
     static void callback(void* self, Uint8* out, int len);
@@ -26,6 +34,7 @@ private:
     SDL_AudioDeviceID dev_ = 0;
     int rate_ = 44100;
     std::vector<Sound> sounds_;
+    OplMusic music_;
     Voice voices_[8];
     std::mutex mu_;
 };

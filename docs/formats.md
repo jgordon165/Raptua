@@ -66,11 +66,15 @@ In the `f[]` ints: `f[1]` = item handle in the build the library was made for (i
 
 ## Sounds `*_FX` (known)
 
-Each `NAME_FX` is an empty marker. It is followed by unnamed items, one per sound device. The digitized one is a DMX sound: `u16 3, u16 rate (11025), u32 samples`, then unsigned 8-bit mono PCM. The other variants (PC speaker and the rest) are not decoded yet.
+Each `NAME_FX` is an empty marker. It is followed by unnamed items, one per sound device, each starting with a `u16` format: 0 = PC speaker, 1 and 2 = the FM/AdLib versions, 3 = digitized. The digitized one is a DMX sound: `u16 3, u16 rate (11025), u32 samples`, then unsigned 8-bit mono PCM. All 26 effects have a digitized version. Raptua uses only those.
 
-## Music `*_MUS` (known container)
+## Music `*_MUS` (known)
 
-DMX MUS (`MUS\x1A`), played through `GENMIDI_OP2` OPL patches. Not played yet.
+DMX MUS: `"MUS\x1A", u16 score_len, u16 score_start, u16 channels, u16 secondary, u16 instrument_count, u16 reserved, u16 instruments[]`, then the score. Each event byte holds: bit 7 = a delay follows, bits 4–6 = type (release, play, pitch bend, system, controller, measure end, score end), bits 0–3 = channel. The delay is a variable-length run of 7-bit groups, in 140 Hz ticks. Channel 15 is percussion. v1.2 has 16 songs: `APOGEE`, `RINTRO`, `MAINMENU`, `HANGAR`, `RAP1`–`RAP8` and `BOSS1`–`BOSS4`.
+
+`GENMIDI_OP2` is the OPL bank: `"#OPL_II#"`, then 175 instruments of 36 bytes (`u16 flags` (1 = fixed pitch, 4 = double voice), `u8 finetune`, `u8 fixed_note`, then two 16-byte voices of modulator/feedback/carrier registers and an `i16` note offset), then 175 names of 32 bytes. Instruments 0–127 are melodic; 128–174 are percussion for keys 35–81.
+
+Raptua plays them on an emulated OPL3 (ymfm's YMF262), 18 voices, with left/right from the MUS pan controller.
 
 ## Open questions
 
