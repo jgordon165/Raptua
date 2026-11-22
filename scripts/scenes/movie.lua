@@ -32,6 +32,10 @@ function M.enter(arg)
   M.t = 0
   M.fx_cache = {}
   M.ending = nil
+  -- Reset for every movie: the scene is one table, and a "done" left over
+  -- from the last movie (the intro) froze every later one on a black
+  -- screen, the landing movie after a wave and the death movie included.
+  M.done_called = false
   if not start_clip() then M.finish() end
 end
 
