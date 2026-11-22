@@ -102,6 +102,7 @@ jobs:
         run: |
           mkdir -p pkg/raptua/data
           cp build-xex/raptua.xex pkg/raptua/raptua.xex
+          mkdir -p pkg/raptua/aurora && cp assets/aurora/*.png pkg/raptua/aurora/
           cp -r build-xex/scripts pkg/raptua/scripts
           cp platform/xenon/README-xex.txt pkg/raptua/README.txt
           cp platform/xenon/README-xex.txt pkg/raptua/data/PUT-FILE0000-AND-FILE0001-GLB-HERE.txt
