@@ -90,6 +90,15 @@ The original's sequences (frame rates in 70 Hz vertical blanks; `scripts/game/mo
 
 The help pages are the text items between the `STARTHELP` and `ENDHELP` markers in `FILE0000.GLB`. They're drawn in `HELP_SWD`'s text field by its layout script. F1 opens help at the page for the current screen (`HELP1` main menu, `GAMEHLP1` in a mission, `HANGHLP1`, `COMPHLP1`, `STORHLP1`), and Up and Down cycle through all of them.
 
+## Pilot saves `CHAR0000.FIL`–`CHAR0009.FIL` (known)
+
+These are loose files next to the GLBs, not in an archive. They use the GLB cipher keyed `CASTLE` (starting at 25 mod 6). The 88-byte pilot record and the item records after it are each enciphered separately, with the cipher restarting for each part.
+
+- **Pilot record:** `char name[20]`, `char callsign[12]`, `i32` photo (0–3), `u32` credits, `i32` current special weapon (object number), `i32` sector (from 0), `i32` next wave in each of the 3 sectors (from 0), `i32` item count, `i32` difficulty per sector [4], `i32` training flag, `i32` training finished.
+- **Item records:** 24 bytes each: two unused pointers, `i32` amount, `i32` object number, an unused pointer, `i32` equipped. Shield energy (16) and super shield (15) carry their level as the amount. The original refuses to load a pilot with no shield energy.
+
+Raptua lists these pilots in Load alongside its own. Loading one carries it on in Raptua's save format, and the `.FIL` file is never written. Deleting one only hides it from the list.
+
 ## Demo recordings `DEMOnG1_REC` (known)
 
 12 bytes per game frame: four `i8` buttons (fire, next special, megabomb, unused), `i16` x and y (the ship's top-left in screen pixels), `i16` bank frame (0–6, 3 = level), `i16` unused. Record 0 is a header: frame count in the bank field, sector (from 0) in x, wave (from 0) in y. The three shareware demos fly sector 1, waves 3, 5 and 7. Raptua replays the recorded ship position and buttons. The enemies are Raptua's own, so a replay isn't a frame-exact copy of the original demo.

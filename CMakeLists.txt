@@ -84,9 +84,12 @@ endif()
 # Same pinned commit as Meguarace (the project has no release tags).
 # SOURCE_SUBDIR points at a folder with no CMakeLists.txt, so only the
 # sources are fetched (ymfm's own CMake would build every chip it has).
+# Fetched as GitHub's archive of that commit rather than with git: a pinned
+# commit needs a full clone, which the macOS runners' git sometimes fails
+# ("could not read Username"), and the archive is smaller.
 FetchContent_Declare(ymfm
-    GIT_REPOSITORY https://github.com/aaronsgiles/ymfm.git
-    GIT_TAG        81aec25ccbb98f4873a255f7551ac4dadac59b4a
+    URL            https://github.com/aaronsgiles/ymfm/archive/81aec25ccbb98f4873a255f7551ac4dadac59b4a.tar.gz
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
     SOURCE_SUBDIR  sources-only)
 FetchContent_MakeAvailable(ymfm)
 add_library(ymfm_opl STATIC
