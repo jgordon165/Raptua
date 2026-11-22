@@ -52,12 +52,64 @@ std::string locate_scripts(const std::string& given) {
     return exe_dir() + "scripts";
 }
 
+// A line for stderr and, on the Xbox 360 (which has no console to read),
+// raptua.log in the port's folder.
+void log_line(const std::string& msg) {
+    std::fprintf(stderr, "%s\n", msg.c_str());
+#ifdef RAPTUA_XENON_LAYOUT
+    if (FILE* f = std::fopen((exe_dir() + "raptua.log").c_str(), "a")) {
+        std::fprintf(f, "%s\n", msg.c_str());
+        std::fclose(f);
+    }
+#endif
+}
+
+std::string g_last_error;
+
+// A script error, on screen in the built-in font until a key or button is
+// pressed, so a failure is never just a blank screen.
+void fatal_screen(Engine* eng, const std::string& msg) {
+    if (eng->window.headless()) return;
+    Screen& s = eng->screen;
+    for (int i = 0; i < 256; ++i) { s.pal[size_t(i * 3)] = uint8_t(i); s.pal[size_t(i * 3 + 1)] = uint8_t(i); s.pal[size_t(i * 3 + 2)] = uint8_t(i); }
+    s.fade = 1.0f;
+    s.clip = Clip{};
+    s.clear(0);
+    std::vector<std::string> lines = {"RAPTUA STOPPED WITH AN ERROR", ""};
+    std::string text = msg, line;
+    for (char c : text) {
+        if (c == '\n' || line.size() >= 52) { lines.push_back(line); line.clear(); if (c == '\n') continue; }
+        line += c;
+    }
+    if (!line.empty()) lines.push_back(line);
+    lines.push_back("");
+#ifdef RAPTUA_XENON_LAYOUT
+    lines.push_back("(also in raptua.log)  PRESS START TO EXIT");
+#else
+    lines.push_back("PRESS ESC TO EXIT");
+#endif
+    for (size_t i = 0; i < lines.size() && i < 23; ++i) s.sys_text(lines[i], 4, 4 + int(i) * 8, i == 0 ? 255 : 200);
+    const Uint32 start = SDL_GetTicks();
+    for (;;) {
+        SDL_Event ev;
+        while (SDL_PollEvent(&ev)) {
+            if (ev.type == SDL_QUIT) return;
+            // Ignore keys held from before the error for half a second.
+            if (ev.type == SDL_KEYDOWN && SDL_GetTicks() - start > 500 &&
+                (ev.key.keysym.sym == SDLK_ESCAPE || ev.key.keysym.sym == SDLK_RETURN)) return;
+        }
+        eng->window.present(s);
+        SDL_Delay(16);
+    }
+}
+
 bool call(lua_State* L, const char* fn, int nargs = 0) {
     lua_getglobal(L, fn);
     if (!lua_isfunction(L, -1)) { lua_pop(L, 1 + nargs); return true; }
     if (nargs) lua_insert(L, -1 - nargs);
     if (lua_pcall(L, nargs, 0, 0) != LUA_OK) {
-        std::fprintf(stderr, "lua error in %s: %s\n", fn, lua_tostring(L, -1));
+        g_last_error = std::string("lua error in ") + fn + ": " + lua_tostring(L, -1);
+        log_line(g_last_error);
         lua_pop(L, 1);
         return false;
     }
@@ -132,8 +184,12 @@ int main(int argc, char** argv) {
         lua_setglobal(L, "RAPTUA_AUTOPLAY");
     }
     std::string main_lua = sdir + "/main.lua";
+    log_line("data: " + eng->data_dir + (eng->data_error.empty() ? "" : " (" + eng->data_error + ")"));
+    log_line("scripts: " + sdir);
     if (luaL_dofile(L, main_lua.c_str()) != LUA_OK) {
-        std::fprintf(stderr, "lua: %s\n", lua_tostring(L, -1));
+        g_last_error = std::string("lua: ") + lua_tostring(L, -1);
+        log_line(g_last_error);
+        fatal_screen(eng, g_last_error + "\n\nThe scripts folder must sit next to the game: " + sdir);
         return 2;
     }
     int rc = 0;
@@ -182,6 +238,7 @@ int main(int argc, char** argv) {
         if (headless && ticks >= headless_ticks) break;
         if (!steps) SDL_Delay(1);
     }
+    if (rc == 2 && !selftest) fatal_screen(eng, g_last_error);
     call(L, "shutdown");
     lua_close(L);
     eng->audio.close();

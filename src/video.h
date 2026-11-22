@@ -45,6 +45,9 @@ public:
     void shade(int x, int y, int w, int h, int level);
     void palette_changed() { shade_valid_ = false; }
     static int text_width(const Font& f, const std::string& s);
+    // The built-in 5x8 font (builtin_font.h), for when the game's own fonts
+    // aren't there. Returns the width drawn.
+    int sys_text(const std::string& s, int x, int y, uint8_t color);
 };
 
 class Window {
