@@ -70,6 +70,13 @@ void xp_gpu_end_frame(void);
 /* A line for the log (the TV console before the game starts, the UART). */
 void xp_log(const char *msg);
 
+/* Leaving: xp_can_exit() is 1 where the title can end and hand the console
+ * back to its dashboard (the xsdk .xex; not the XeLL build, which has no
+ * dashboard to go back to). xp_exit_title() stops the sound feeder, gives
+ * back the sound driver and ends the title; it doesn't return there. */
+int xp_can_exit(void);
+void xp_exit_title(int status);
+
 #ifdef __cplusplus
 }
 #endif

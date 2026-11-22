@@ -1,5 +1,10 @@
 #include <cctype>
 #include "lua_api.h"
+#ifdef RAPTUA_XENON_LAYOUT
+extern "C" {
+#include "xenon_platform.h"
+}
+#endif
 
 #include <cstring>
 #include <memory>
@@ -60,6 +65,17 @@ void set_int(lua_State* L, const char* k, lua_Integer v) { lua_pushinteger(L, v)
 int l_have_data(lua_State* L) { lua_pushboolean(L, E(L)->glb.file_count() >= 2); return 1; }
 int l_data_error(lua_State* L) { lua_pushstring(L, E(L)->data_error.c_str()); return 1; }
 int l_data_dir(lua_State* L) { lua_pushstring(L, E(L)->data_dir.c_str()); return 1; }
+
+// can_exit() -> bool: whether Quit makes sense here (always on a PC; on the
+// Xbox 360 only the .xex, which goes back to the dashboard).
+int l_can_exit(lua_State* L) {
+#ifdef RAPTUA_XENON_LAYOUT
+    lua_pushboolean(L, xp_can_exit());
+#else
+    lua_pushboolean(L, 1);
+#endif
+    return 1;
+}
 
 // sys_text(str, x, y [, color]) -> width: the built-in 5x8 font, for
 // messages when the game's fonts aren't there.
@@ -536,7 +552,7 @@ void register_lua_api(lua_State* L, Engine* e) {
         {"music_playing", l_music_playing},
         {"held", l_held}, {"pressed", l_pressed}, {"typed", l_typed},
         {"mouse", l_mouse}, {"grab_mouse", l_grab_mouse},
-        {"tick_rate", l_tick_rate}, {"quit", l_quit}, {"fullscreen", l_fullscreen},
+        {"tick_rate", l_tick_rate}, {"quit", l_quit}, {"can_exit", l_can_exit}, {"fullscreen", l_fullscreen},
         {"headless", l_headless}, {"millis", l_millis}, {"message", l_message}, {"screenshot", l_screenshot},
         {"save_file", l_save_file}, {"load_file", l_load_file},
         {nullptr, nullptr}};

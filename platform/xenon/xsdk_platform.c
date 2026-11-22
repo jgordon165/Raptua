@@ -343,6 +343,24 @@ void xp_audio_stop_feeder(void)
 
 void xp_log(const char *msg) { xsdk_log_write("%s", msg); }
 
+int xp_can_exit(void) { return 1; }
+
+/* Ends the title: the feeder stopped and the render driver unregistered, so
+ * nothing keeps running into the dashboard, then newlib's exit, whose _exit
+ * (xsdk src/exit.c) closes the display and GPU and calls
+ * XamLoaderTerminateTitle. The console goes back to its default dashboard
+ * (the stock one, or Aurora / FreeStyle when DashLaunch makes it the
+ * default), not to whatever launched the title. */
+void xp_exit_title(int status)
+{
+    uint32_t d;
+    xsdk_log_write("exit: back to the dashboard");
+    xp_audio_stop_feeder();
+    d = __atomic_exchange_n(&driver, 0u, __ATOMIC_ACQ_REL);
+    if (d) XAudioUnregisterRenderDriverClient(d);
+    exit(status);
+}
+
 /* ---- what newlib asks of the system and xsdk leaves out ----------------------
  * system() (Lua's os.execute) wants fork, execve and wait: there are no
  * processes, so they fail. clock() (Lua's os.clock) wants times(): the time
