@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 #include "xsdk/display.h"
 #include "xsdk/gpu.h"
@@ -351,13 +352,36 @@ int xp_can_exit(void) { return 1; }
  * XamLoaderTerminateTitle. The console goes back to its default dashboard
  * (the stock one, or Aurora / FreeStyle when DashLaunch makes it the
  * default), not to whatever launched the title. */
+/* xam.xex ordinal 0x1A4 (added to xsdk's imports/imports.txt by the
+ * Xbox 360 workflow): ends this title and starts the .xex at path. */
+void XamLoaderLaunchTitle(const char *path, uint32_t flags);
+
 void xp_exit_title(int status)
 {
     uint32_t d;
-    xsdk_log_write("exit: back to the dashboard");
+    char target[512];
+    struct stat st;
     xp_audio_stop_feeder();
     d = __atomic_exchange_n(&driver, 0u, __ATOMIC_ACQ_REL);
     if (d) XAudioUnregisterRenderDriverClient(d);
+    if (xp_dashboard_target(target, sizeof target)) {
+        if (stat(target, &st) == 0) {
+            /* As xsdk's _exit does, the presenter, display and GPU go back to
+             * XAM first; then the loader starts the chosen .xex in place of
+             * this one. */
+            xsdk_log_write("exit: launching %s", target);
+            xsdk_present_close();
+            xsdk_display_close();
+            (void)xsdk_gpu_close();
+            xsdk_log_close();
+            XamLoaderLaunchTitle(target, 0);
+            XamLoaderTerminateTitle();   /* not reached if the launch goes ahead */
+            for (;;) xsdk_thread_sleep(1000);
+        }
+        xsdk_log_write("exit: %s not found; back to the default dashboard", target);
+    } else {
+        xsdk_log_write("exit: back to the dashboard");
+    }
     exit(status);
 }
 

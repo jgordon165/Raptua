@@ -90,6 +90,12 @@ jobs:
         with:
           path: ~/xsdk-gcc
           key: xsdk-gcc-${{ hashFiles('xsdk/tools/toolchain/**') }}
+      # Quit can launch another .xex (dashboard.txt): XamLoaderLaunchTitle,
+      # xam.xex ordinal 0x1A4, which xsdk's import list doesn't have yet.
+      - name: Add XamLoaderLaunchTitle to xsdk's imports
+        run: |
+          grep -q "XamLoaderLaunchTitle\b" xsdk/imports/imports.txt ||
+            printf 'xam.xex       0x1A4  XamLoaderLaunchTitle\n' >> xsdk/imports/imports.txt
       - name: Build libxsdk
         run: make -C xsdk -j$(nproc) build/libxsdk.a
       - name: Configure
@@ -103,6 +109,7 @@ jobs:
           mkdir -p pkg/raptua/data
           cp build-xex/raptua.xex pkg/raptua/raptua.xex
           mkdir -p pkg/raptua/aurora && cp assets/aurora/*.png pkg/raptua/aurora/
+          cp platform/xenon/dashboard.txt pkg/raptua/dashboard.txt
           cp -r build-xex/scripts pkg/raptua/scripts
           cp platform/xenon/README-xex.txt pkg/raptua/README.txt
           cp platform/xenon/README-xex.txt pkg/raptua/data/PUT-FILE0000-AND-FILE0001-GLB-HERE.txt
