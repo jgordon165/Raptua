@@ -22,10 +22,11 @@ Early. What works today:
 - The original movies from your data: the intro after the start-up logos, the landing after each wave, the death sequence and the end of a sector, with their sound effects. Any key skips
 - Songs play where the original plays them: the main menu theme, the intro theme over a game in progress, each sector's own wave order, the death theme, and the credits songs in turn
 - Help (F1) with the original help pages from your data, opening at the page for the screen you're on
+- Your original pilots: any `CHAR000n.FIL` saves in your data folder show up in Load (read only; they carry on in Raptua's own save format)
 - The demos: D on the main menu, or leaving it untouched for half a minute, replays one of the original's three recordings (the recorded flight and firing; Raptua's enemies)
 - An asset explorer (F9) for browsing everything in the archives
 
-Still to come (roughly in order): enemy shot types, the non-missile special weapons, the original pilot save format, then the SNES build. `docs/formats.md` lists what is known and what is still a guess.
+Still to come (roughly in order): enemy shot types, the non-missile special weapons, then the SNES build. `docs/formats.md` lists what is known and what is still a guess.
 
 ## Running
 

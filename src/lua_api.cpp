@@ -1,3 +1,4 @@
+#include <cctype>
 #include "lua_api.h"
 
 #include <cstring>
@@ -67,6 +68,34 @@ int l_sys_text(lua_State* L) {
     int w = e->screen.sys_text(luaL_checkstring(L, 1), int(luaL_checkinteger(L, 2)), int(luaL_checkinteger(L, 3)),
                                uint8_t(luaL_optinteger(L, 4, 255)));
     lua_pushinteger(L, w);
+    return 1;
+}
+
+// data_file(name) -> bytes | nil: a loose file in the data folder (next to the
+// GLBs), e.g. the original's pilot saves. Tries the name as given, upper and
+// lower case.
+int l_data_file(lua_State* L) {
+    std::string name = luaL_checkstring(L, 1);
+    if (name.find('/') != std::string::npos || name.find('\\') != std::string::npos || name.find("..") != std::string::npos) {
+        lua_pushnil(L); return 1;
+    }
+    std::string up = name, low = name;
+    for (auto& c : up) c = (char)std::toupper((unsigned char)c);
+    for (auto& c : low) c = (char)std::tolower((unsigned char)c);
+    std::string dir = E(L)->data_dir;
+    if (!dir.empty() && dir.back() != '/' && dir.back() != '\\') dir += '/';
+    for (const std::string& n : {name, up, low}) {
+        FILE* f = std::fopen((dir + n).c_str(), "rb");
+        if (!f) continue;
+        std::string s;
+        char buf[4096];
+        size_t r;
+        while ((r = std::fread(buf, 1, sizeof buf, f)) > 0) s.append(buf, r);
+        std::fclose(f);
+        lua_pushlstring(L, s.data(), s.size());
+        return 1;
+    }
+    lua_pushnil(L);
     return 1;
 }
 
@@ -494,7 +523,7 @@ int l_load_file(lua_State* L) {
 
 void register_lua_api(lua_State* L, Engine* e) {
     static const luaL_Reg fns[] = {
-        {"have_data", l_have_data}, {"data_error", l_data_error}, {"data_dir", l_data_dir},
+        {"have_data", l_have_data}, {"data_error", l_data_error}, {"data_dir", l_data_dir}, {"data_file", l_data_file},
         {"find", l_find}, {"item", l_item}, {"item_count", l_item_count}, {"file_count", l_file_count},
         {"read", l_read},
         {"palette", l_palette}, {"palette_rgb", l_palette_rgb}, {"fade", l_fade},
