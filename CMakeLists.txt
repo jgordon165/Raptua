@@ -163,6 +163,9 @@ if(XSDK)
         VERBATIM)
 endif()
 raptua_warnings(raptua)
+if(WIN32)
+    target_sources(raptua PRIVATE src/raptua.rc)   # the icon, assets/raptua.ico
+endif()
 target_compile_definitions(raptua PRIVATE RAPTUA_VERSION="${PROJECT_VERSION}")
 
 # Lua scripts sit next to the executable (scripts/), so the game can be
@@ -209,3 +212,6 @@ if(NOT RAPTUA_XENON)
 endif()
 install(DIRECTORY scripts DESTINATION .)
 install(FILES README.md DESTINATION .)
+# The icon beside the executable too, for shortcuts that name an icon file
+# (and Progman31lua's Games group, which shows a shortcut's icon).
+install(FILES assets/raptua.ico DESTINATION .)

@@ -1,0 +1,4 @@
+// The Windows build's icon (tools/make_icon.py draws it): the executable's
+// in Explorer, on shortcuts and in Progman31lua's Program Manager (which
+// reads its 16-colour 32 x 32 image), and the window's (SDL takes it by id).
+1 ICON "../assets/raptua.ico"

@@ -92,6 +92,10 @@ On Linux, install the SDL2 build dependencies first (see `.github/actions/config
 
 Raptor: Call of the Shadows is © Cygnus Studios / Mountain King Studios. Raptua contains none of its code or data. It is an independent reimplementation that reads files you supply.
 
+## Icon
+
+`assets/raptua.ico` is Raptua's own icon (the jet from the Aurora art, drawn from scratch by `tools/make_icon.py`). The Windows build carries it in `raptua.exe`, so a shortcut to Raptua shows it in Explorer and in [Progman31lua](https://github.com/jgordon165/Progman31lua)'s Games group, and the release zip has a copy beside the executable. Besides the modern sizes it has 16-colour 32×32 and 16×16 images on the standard VGA palette, which is what Windows 3.1, and Progman31lua's Program Manager, read.
+
 ## Aurora art (Xbox 360)
 
 `assets/aurora/` holds Raptua's own icon, banner, box art and background for the Aurora dashboard, drawn from scratch by `tools/make_aurora_art.py` (no game art). The `.xex` package includes them in `aurora/`, and the title has its own title ID (`52415054`), so Aurora keeps these assets separate from other homebrew.
