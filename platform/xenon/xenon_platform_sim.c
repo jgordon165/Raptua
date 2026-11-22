@@ -177,3 +177,11 @@ void xp_lock(void) {}
 void xp_unlock(void) {}
 
 void xp_log(const char *msg) { fprintf(stderr, "%s\n", msg); }
+
+/* The stand-in plays the xsdk title here: it can exit, and says so. */
+int xp_can_exit(void) { return 1; }
+void xp_exit_title(int status)
+{
+    fprintf(stderr, "exit: back to the dashboard\n");
+    exit(status);
+}

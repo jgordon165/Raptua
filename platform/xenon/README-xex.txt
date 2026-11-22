@@ -26,6 +26,11 @@ Controls
   RB                     help
   BACK                   choose in menus
 
+To leave, choose QUIT on the main menu (or press B there) and answer YES to
+"Return to the dashboard?". The title stops its sound and ends; the console
+goes to its default dashboard (Aurora or FreeStyle if DashLaunch makes it
+the default).
+
 Settings (volumes, game speed) are saved next to raptua.xex.
 
 Aurora art
@@ -36,3 +41,9 @@ background.png (1280x720). Raptua has its own title ID (52415054), so in
 Aurora you can give it these as its assets (from the game's asset options,
 loading the images from the USB stick) without them showing on other
 homebrew titles.
+
+If something goes wrong
+-----------------------
+If the data files aren't found, the screen says so and shows the folder it
+looked in. A script error is shown on screen too (START exits). Both, and the
+folders used, are written to raptua.log next to raptua.xex.

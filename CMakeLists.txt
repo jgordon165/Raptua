@@ -140,6 +140,7 @@ endif()
 if(RAPTUA_XENON)
     # Paths and controls laid out for the console (src/main.cpp, lua_api.cpp).
     target_compile_definitions(raptua PRIVATE RAPTUA_XENON_LAYOUT=1)
+    target_include_directories(raptua PRIVATE ${CMAKE_SOURCE_DIR}/platform/xenon)
 endif()
 if(RAPTUA_XENON_TARGET)
     # LibXenon and its FAT driver, then the .elf32 that XeLL loads.

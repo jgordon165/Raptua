@@ -1,4 +1,5 @@
 #include "video.h"
+#include "builtin_font.h"
 
 #include <algorithm>
 
@@ -163,6 +164,23 @@ void Window::to_screen(int wx, int wy, int& sx, int& sy) const {
     sy = dst_.h ? int((py - float(dst_.y)) * kScreenH / float(dst_.h)) : 0;
     sx = std::clamp(sx, 0, kScreenW - 1);
     sy = std::clamp(sy, 0, kScreenH - 1);
+}
+
+} // namespace raptua
+
+namespace raptua {
+
+int Screen::sys_text(const std::string& s, int x, int y, uint8_t color) {
+    int cx = x;
+    for (unsigned char ch : s) {
+        if (ch < 32 || ch > 126) ch = '?';
+        const uint8_t* g = kSysFont[ch - 32];
+        for (int r = 0; r < kSysFontH; ++r)
+            for (int b = 0; b < kSysFontW; ++b)
+                if (g[r] & (0x80 >> b)) pixel(cx + b, y + r, color);
+        cx += kSysFontW;
+    }
+    return cx - x;
 }
 
 } // namespace raptua
