@@ -77,6 +77,14 @@ void xp_log(const char *msg);
 int xp_can_exit(void);
 void xp_exit_title(int status);
 
+/* xenon_dashboard.c: the .xex Quit launches, from dashboard.txt in the
+ * port's folder, as a kernel path in out (1), or 0 for the default
+ * dashboard. xp_dashboard_map turns "Usb0:\Aurora\default.xex" and the like
+ * into that form (0 if the drive isn't known). */
+#include <stddef.h>
+int xp_dashboard_target(char *out, size_t out_bytes);
+int xp_dashboard_map(const char *in, char *out, size_t out_bytes);
+
 #ifdef __cplusplus
 }
 #endif

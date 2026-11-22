@@ -1,0 +1,16 @@
+# Where QUIT on Raptua's main menu takes the Xbox 360.
+#
+# Leave this as "default" to end the title and go to the console's default
+# dashboard (Aurora or FreeStyle if DashLaunch makes it the default).
+#
+# Or put the path of a .xex to launch instead, on the first line that isn't
+# a comment, for example:
+#   Usb0:\Aurora\default.xex        Aurora on the first USB stick
+#   Usb1:\Apps\XeXMenu\default.xex  another program on the second USB stick
+#   Hdd:\Aurora\default.xex         Aurora on the hard drive
+#   game:\Tools\default.xex         a folder inside the raptua folder
+# Drives: Usb0: Usb1: Usb2: Hdd: game: (the raptua folder), or a full
+# \Device\... path. If the file isn't there, Raptua goes to the default
+# dashboard and says so in raptua's log.
+
+default

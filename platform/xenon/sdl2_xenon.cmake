@@ -30,10 +30,11 @@ list(APPEND xsdl_sources
     ${xsdl_dir}/SDL_xenon_timer.c
     ${xsdl_dir}/SDL_xenon_filesystem.c)
 if(RAPTUA_XENON_SIM)
-    list(APPEND xsdl_sources ${CMAKE_CURRENT_LIST_DIR}/xenon_platform_sim.c)
+    list(APPEND xsdl_sources ${CMAKE_CURRENT_LIST_DIR}/xenon_platform_sim.c ${CMAKE_CURRENT_LIST_DIR}/xenon_dashboard.c)
 elseif(XSDK)
     # The GPU renderer, in SDL's VITA_GXM driver slot (see the file).
-    list(APPEND xsdl_sources ${CMAKE_CURRENT_LIST_DIR}/xsdk_platform.c ${xsdl_dir}/SDL_xenos_render.c)
+    list(APPEND xsdl_sources ${CMAKE_CURRENT_LIST_DIR}/xsdk_platform.c ${xsdl_dir}/SDL_xenos_render.c
+                             ${CMAKE_CURRENT_LIST_DIR}/xenon_dashboard.c)
 else()
     list(APPEND xsdl_sources ${CMAKE_CURRENT_LIST_DIR}/xenon_platform.c)
 endif()

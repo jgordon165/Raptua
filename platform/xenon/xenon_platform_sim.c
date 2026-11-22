@@ -182,6 +182,8 @@ void xp_log(const char *msg) { fprintf(stderr, "%s\n", msg); }
 int xp_can_exit(void) { return 1; }
 void xp_exit_title(int status)
 {
-    fprintf(stderr, "exit: back to the dashboard\n");
+    char target[512];
+    if (xp_dashboard_target(target, sizeof target)) fprintf(stderr, "exit: launching %s\n", target);
+    else fprintf(stderr, "exit: back to the dashboard\n");
     exit(status);
 }
