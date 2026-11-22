@@ -1,8 +1,11 @@
--- Pickups. A destroyed ground crate (sprite library entries with a bonus
--- number, f[2] >= 0) drops BONUSnn_PIC, which rides the map until the player
--- flies over it.
+-- Pickups. A destroyed enemy whose sprite library entry has a bonus number
+-- (f[2] >= 0, an object number) drops that object, and an "energy" ship
+-- (explosion type 8) drops the blue energy orb, object 23; each rides the
+-- map until the player flies over it.
 --
--- BONUSnn matches the store icon ICONnn. The item's name comes from the
+-- Each object has its own picture, BONUSnn_PIC by the original's object
+-- table, not by object number: from the bomb (9, BONUS21) on, the two
+-- differ (shield energy 16 is BONUS15, the orb 23 is BONUS22). The item's name comes from the
 -- ITEMxx_TXT whose TEXT_IMAGE line names that icon, read from the player's
 -- own FILE0000.GLB. What each pickup does is a first pass until the
 -- original's rules are read out of RAP.EXE.
@@ -40,14 +43,29 @@ function M.new()
   return self
 end
 
+-- Object number -> its BONUSnn picture (the original's object table).
+M.PIC = { [0] = 0, 1, 2, 3, 4, 5, 6, 7, 8, 21, 9, 10, 11, 12, 13, 14, 15, 16, 16, 17, 18, 19, 20, 22 }
+
+-- The energy orb an energy ship leaves ($50), and how many may be about at
+-- once (the original keeps 3 of its 12 pickup slots for other drops).
+M.ORB, M.MAX_ORBS = 23, 9
+
 function M:frames_of(n)
-  if not self.frames[n] then self.frames[n] = util.frames(("BONUS%02d_PIC"):format(n)) end
+  if not self.frames[n] then
+    local pic = M.PIC[n]
+    self.frames[n] = pic and util.frames(("BONUS%02d_PIC"):format(pic)) or {}
+  end
   return self.frames[n]
 end
 
 function M:drop(n, x, y)
   local fr = self:frames_of(n)
   if #fr == 0 then return end
+  if n == M.ORB then
+    local orbs = 0
+    for _, b in ipairs(self.list) do if b.n == M.ORB then orbs = orbs + 1 end end
+    if orbs >= M.MAX_ORBS then return end
+  end
   local w, h = rap.pic_info(fr[1])
   if os.getenv("RAPTUA_TRACE") then io.stderr:write(("bonus %d dropped\n"):format(n)) end
   self.list[#self.list + 1] = { n = n, frames = fr, x = x - w / 2, y = y - h / 2, w = w, h = h, t = 0 }
@@ -72,8 +90,8 @@ local function apply(self, player, n)
     player.items[n] = 1
     if not player.special and n >= weapons.FIRST_SPECIAL and n <= weapons.LAST_SPECIAL then player.special = n end
   end
-  if os.getenv("RAPTUA_TRACE") then io.stderr:write(("bonus %d collected: %s\n"):format(n, self.names[n] or "?")) end
-  self.message = label or self.names[n] or (weapons.LIB[n] and weapons.LIB[n].name) or ("BONUS %d"):format(n)
+  if os.getenv("RAPTUA_TRACE") then io.stderr:write(("bonus %d collected: %s\n"):format(n, self.names[M.PIC[n] or n] or "?")) end
+  self.message = label or self.names[M.PIC[n] or n] or (weapons.LIB[n] and weapons.LIB[n].name) or ("BONUS %d"):format(n)
   self.message_t = 70
 end
 

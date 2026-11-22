@@ -32,6 +32,9 @@ end
 
 function M:done() return self.cam <= 0 end
 
+-- Every actor in the map has appeared (the last wave of enemies is out).
+function M:all_spawned() return self.next_actor > #self.actors end
+
 function M:update()
   self.cam = math.max(0, self.cam - self.speed)
 end

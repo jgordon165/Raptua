@@ -185,7 +185,12 @@ local function kill(e, player, shots, bonus)
   e.dead = true
   player.money = player.money + e.def.bounty
   shots:explode(e.x + e.w / 2, e.y + e.h / 2, not e.def.ground)
-  if e.def.bonus >= 0 and bonus then bonus:drop(e.def.bonus, e.x + e.w / 2, e.y + e.h / 2) end
+  if bonus then
+    -- An energy ship (explosion type 8) leaves an energy orb; any enemy with
+    -- a bonus number leaves that object as well.
+    if e.def.exptype == 8 then bonus:drop(bonus.ORB, e.x + e.w / 2, e.y + e.h / 2) end
+    if e.def.bonus >= 0 then bonus:drop(e.def.bonus, e.x + e.w / 2, e.y + e.h / 2) end
+  end
   if os.getenv("RAPTUA_TRACE") then io.stderr:write(("killed %s bonus=%d\n"):format(e.def.name, e.def.bonus)) end
 end
 

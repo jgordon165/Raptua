@@ -86,6 +86,12 @@ The original's sequences (frame rates in 70 Hz vertical blanks; `scripts/game/mo
 - **Death:** `DOWN` (11), then `SDEATH` (3, eight times).
 - **Sector cleared:** `GAME1END` (4, eight times).
 
+## Pickups and the end of a wave (known)
+
+- **Pickup pictures:** each object has its own `BONUSnn_PIC` by the original's object table, not by object number. Objects 0–8 match their numbers. After that: bomb 9 → `BONUS21`, energy grab 10 → `09`, megabomb 11 → `10`, pulse cannon 12 → `11`, laser 13 → `12`, death ray 14 → `13`, phase shield 15 → `14`, shield energy 16 → `15`, detector 17 and cash 18 → `16`, cash 19–22 → `17`–`20`, energy orb 23 → `22`.
+- **Drops:** a destroyed enemy with a bonus number (sprite lib `f[2]`) drops that object. An "energy" ship (explosion type 8, nine in `SPRITE1_ITM`) also drops the energy orb, object 23, worth $50. At most 9 orbs are about at once.
+- **End of a wave:** the wave is won once the map's last actor has appeared and every enemy is gone, the boss included. Reaching the top of the map isn't enough. After that come 60 game frames. For the last 40, the controls are taken away, the fly-by sound plays, and the ship moves 8 px a frame toward the middle and 4 px a frame up, off the top of the screen.
+
 ## Help pages (known)
 
 The help pages are the text items between the `STARTHELP` and `ENDHELP` markers in `FILE0000.GLB`. They're drawn in `HELP_SWD`'s text field by its layout script. F1 opens help at the page for the current screen (`HELP1` main menu, `GAMEHLP1` in a mission, `HANGHLP1`, `COMPHLP1`, `STORHLP1`), and Up and Down cycle through all of them.

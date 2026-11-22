@@ -50,8 +50,10 @@ function M.enter(arg)
   M.snd_bomb = rap.sound("EXPLO2_FX")
   M.snd_swep = rap.sound("SWEP_FX")
   M.snd_boss = rap.sound("BOSS_FX")
+  M.snd_flyby = rap.sound("FLYBY_FX")
   M.warn_t = 0
   M.end_t = nil
+  M.wave_over = nil   -- game frames left once the wave is won (the original's 60)
   M.fade = 0
   rap.grab_mouse(not rap.headless())
 end
@@ -140,8 +142,23 @@ function M.update()
       end
       M.demo_bomb = r.bomb
       if r.fire then M.weapons:fire_all(pl, M.enemies) end
-    elseif not pl.dead and (util.held("fire") or pl.autofire) then M.weapons:fire_all(pl, M.enemies) end
+    elseif not pl.dead and not pl.flyoff and (util.held("fire") or pl.autofire) then M.weapons:fire_all(pl, M.enemies) end
     M.enemies:step(scroll, pl, M.shots)
+    -- The wave is won, as in the original, once the map's last enemy has
+    -- appeared and every enemy is gone (the boss included): reaching the top
+    -- of the map isn't enough. Then 60 game frames: for the last 40 the
+    -- controls are taken away and the ship lines up with the middle and
+    -- flies off the top of the screen.
+    if not M.wave_over and not pl.dead and lv:all_spawned() and #M.enemies.list == 0 then M.wave_over = 60 end
+    if M.wave_over and not pl.dead then
+      M.wave_over = M.wave_over - 1
+      if M.wave_over < 40 then
+        if not pl.flyoff then pl.flyoff = true; rap.play(M.snd_flyby, 1.0) end
+        local cx = pl.x + pl.w / 2
+        pl.x = pl.x + (cx < 152 and 8 or cx > 168 and -8 or 0)
+        pl.y = pl.y - 4
+      end
+    end
     -- A boss on screen (an enemy whose record names a song) keeps the boss
     -- sound going, as the original does.
     if M.enemies:boss_present() and not rap.sound_playing(M.snd_boss) then rap.play(M.snd_boss, 0.8) end
@@ -160,7 +177,7 @@ function M.update()
     M.warn_t = 70
   end
 
-  if (pl.dead or lv:done()) and not M.end_t then
+  if (pl.dead or (M.wave_over and M.wave_over <= 0)) and not M.end_t then
     M.end_t = 0
     if pl.dead then
       music.death()
@@ -198,6 +215,7 @@ function M.update()
           scenes.switch(require("scenes.mainmenu"))
         end
       end
+      return   -- the next scene owns the screen (and its fade) now
     end
   end
   rap.fade(M.fade)
