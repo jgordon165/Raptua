@@ -60,6 +60,16 @@ int l_have_data(lua_State* L) { lua_pushboolean(L, E(L)->glb.file_count() >= 2);
 int l_data_error(lua_State* L) { lua_pushstring(L, E(L)->data_error.c_str()); return 1; }
 int l_data_dir(lua_State* L) { lua_pushstring(L, E(L)->data_dir.c_str()); return 1; }
 
+// sys_text(str, x, y [, color]) -> width: the built-in 5x8 font, for
+// messages when the game's fonts aren't there.
+int l_sys_text(lua_State* L) {
+    auto* e = E(L);
+    int w = e->screen.sys_text(luaL_checkstring(L, 1), int(luaL_checkinteger(L, 2)), int(luaL_checkinteger(L, 3)),
+                               uint8_t(luaL_optinteger(L, 4, 255)));
+    lua_pushinteger(L, w);
+    return 1;
+}
+
 int l_find(lua_State* L) {
     auto h = E(L)->glb.find(luaL_checkstring(L, 1));
     if (h) lua_pushinteger(L, *h); else lua_pushnil(L);
@@ -490,7 +500,7 @@ void register_lua_api(lua_State* L, Engine* e) {
         {"palette", l_palette}, {"palette_rgb", l_palette_rgb}, {"fade", l_fade},
         {"clear", l_clear}, {"rect", l_rect}, {"shade", l_shade}, {"agx", l_agx}, {"pixel", l_pixel}, {"clip", l_clip},
         {"pic", l_pic}, {"pic_info", l_pic_info}, {"pic_hit", l_pic_hit},
-        {"text", l_text}, {"text_size", l_text_size},
+        {"text", l_text}, {"sys_text", l_sys_text}, {"text_size", l_text_size},
         {"level", l_level}, {"sprite_lib", l_sprite_lib}, {"flats", l_flats}, {"swd", l_swd},
         {"sound", l_sound}, {"play", l_play}, {"sound_playing", l_sound_playing}, {"volume", l_volume}, {"stop_sounds", l_stop_sounds},
         {"music", l_music}, {"music_stop", l_music_stop}, {"music_volume", l_music_volume},

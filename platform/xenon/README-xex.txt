@@ -27,3 +27,9 @@ Controls
   BACK                   choose in menus
 
 Settings (volumes, game speed) are saved next to raptua.xex.
+
+If something goes wrong
+-----------------------
+If the data files aren't found, the screen says so and shows the folder it
+looked in. A script error is shown on screen too (START exits). Both, and the
+folders used, are written to raptua.log next to raptua.xex.

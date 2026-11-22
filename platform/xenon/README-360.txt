@@ -24,3 +24,7 @@ Controls
   START                  pause / continue
   RB                     help
   BACK                   choose in menus
+
+If the data files aren't found, the screen says so and shows the folder it
+looked in. A script error is shown on screen too (START exits). Both, and the
+folders used, are written to raptua.log in the raptua folder.
