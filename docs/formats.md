@@ -69,7 +69,7 @@ Each `NAME_FX` is an empty marker. It is followed by unnamed items, one per soun
 
 ## Music `*_MUS` (known)
 
-DMX MUS: `"MUS\x1A", u16 score_len, u16 score_start, u16 channels, u16 secondary, u16 instrument_count, u16 reserved, u16 instruments[]`, then the score. Each event byte holds: bit 7 = a delay follows, bits 4–6 = type (release, play, pitch bend, system, controller, measure end, score end), bits 0–3 = channel. The delay is a variable-length run of 7-bit groups, in 140 Hz ticks. Channel 15 is percussion. v1.2 has 16 songs: `APOGEE`, `RINTRO`, `MAINMENU`, `HANGAR`, `RAP1`–`RAP8` and `BOSS1`–`BOSS4`.
+DMX MUS: `"MUS\x1A", u16 score_len, u16 score_start, u16 channels, u16 secondary, u16 instrument_count, u16 reserved, u16 instruments[]`, then the score. Each event byte holds: bit 7 = a delay follows, bits 4–6 = type (release, play, pitch bend, system, controller, measure end, score end), bits 0–3 = channel. The delay is a variable-length run of 7-bit groups, in ticks of Raptor's 70 Hz music service (Doom plays MUS at 140 Hz; Raptor at half that). Channel 15 is percussion. v1.2 has 16 songs: `APOGEE`, `RINTRO`, `MAINMENU`, `HANGAR`, `RAP1`–`RAP8` and `BOSS1`–`BOSS4`.
 
 `GENMIDI_OP2` is the OPL bank: `"#OPL_II#"`, then 175 instruments of 36 bytes (`u16 flags` (1 = fixed pitch, 4 = double voice), `u8 finetune`, `u8 fixed_note`, then two 16-byte voices of modulator/feedback/carrier registers and an `i16` note offset), then 175 names of 32 bytes. Instruments 0–127 are melodic; 128–174 are percussion for keys 35–81.
 
