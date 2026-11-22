@@ -136,14 +136,13 @@ void Window::present(const Screen& s) {
         uint32_t b = uint32_t(s.pal[size_t(i * 3 + 2)] * f >> 8);
         lut[size_t(i)] = 0xFF000000u | r << 16 | g << 8 | b;
     }
-    void* pixels; int pitch;
-    if (SDL_LockTexture(tex_, nullptr, &pixels, &pitch) == 0) {
-        for (int y = 0; y < kScreenH; ++y) {
-            auto* row = reinterpret_cast<uint32_t*>(static_cast<uint8_t*>(pixels) + y * pitch);
-            for (int x = 0; x < kScreenW; ++x) row[x] = lut[s.px[size_t(y * kScreenW + x)]];
-        }
-        SDL_UnlockTexture(tex_);
-    }
+    // Converted into our own buffer, then one SDL_UpdateTexture: the path
+    // every renderer handles alike (the Xbox 360's GPU renderer uploads whole
+    // rows straight from it; a lock goes through a shadow copy read back
+    // from the GPU).
+    frame_.resize(size_t(kScreenW) * kScreenH);
+    for (size_t i = 0; i < frame_.size(); ++i) frame_[i] = lut[s.px[i]];
+    SDL_UpdateTexture(tex_, nullptr, frame_.data(), kScreenW * 4);
     int ow, oh;
     SDL_GetRendererOutputSize(ren_, &ow, &oh);
     // Largest 4:3 rectangle that fits.

@@ -1,5 +1,6 @@
 // The 320x200 8-bit screen (VGA mode 13h) and how it reaches the window.
 #pragma once
+#include <vector>
 #include <SDL.h>
 
 #include <array>
@@ -64,6 +65,10 @@ private:
     SDL_Window* win_ = nullptr;
     SDL_Renderer* ren_ = nullptr;
     SDL_Texture* tex_ = nullptr;
+public:
+    SDL_Renderer* renderer() const { return ren_; }
+private:
+    std::vector<uint32_t> frame_;   // the converted frame, uploaded whole
     SDL_Rect dst_{0, 0, kScreenW, kScreenH};
     bool headless_ = false;
 };
