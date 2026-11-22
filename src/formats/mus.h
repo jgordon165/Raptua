@@ -35,7 +35,11 @@ struct MusScore {
     std::vector<MusEvent> events;
     std::vector<uint16_t> instruments;
     uint32_t length_ticks = 0;
-    static constexpr int kTickHz = 140;
+    // Raptor's sequencer runs at 70 Hz, not Doom's 140: its music service
+    // advances the score 70 times a second (one delay unit per call), paced
+    // by the sound card's sample count, never the CPU. At 140 every song
+    // played twice as fast.
+    static constexpr int kTickHz = 70;
 };
 
 bool decode_mus(const Bytes& data, MusScore& out, std::string* err = nullptr);
