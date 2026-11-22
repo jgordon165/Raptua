@@ -35,6 +35,7 @@ end
 
 function M:update()
   if self.dead then return end
+  if self.demo then self.flash = math.max(0, self.flash - 1); return end   -- a demo replay places the ship
   local sp = 3
   local x0 = self.x
   local mx, my, dx, dy, moved = rap.mouse()

@@ -1,4 +1,4 @@
--- Asset explorer (F1): walk every item in the GLB archives and preview it.
+-- Asset explorer (F9): walk every item in the GLB archives and preview it.
 -- Up/Down: item, PgUp/PgDn: 20 items, Left/Right: archive, P: cycle
 -- palette, Esc: back.
 local scenes = require("core.scenes")
@@ -29,7 +29,7 @@ end
 
 function M.update()
   local n = rap.item_count(M.file)
-  if util.pressed("back") or rap.pressed("F1") then scenes.pop(); return end
+  if util.pressed("back") or rap.pressed("F9") then scenes.pop(); return end
   if util.pressed("down") then M.index = (M.index + 1) % n end
   if util.pressed("up") then M.index = (M.index - 1) % n end
   if rap.pressed("repeat_Page Down") then M.index = math.min(n - 1, M.index + 20) end

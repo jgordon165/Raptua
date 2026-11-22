@@ -25,7 +25,8 @@ function update()
     local name = ("raptua_%d.bmp"):format(rap.millis())
     if rap.screenshot(name) then io.stderr:write("saved ", name, "\n") end
   end
-  if rap.pressed("F1") and rap.have_data() and not scenes.is(require("scenes.explorer")) then
+  -- F9: the asset explorer (F1 is help, as in the original).
+  if rap.pressed("F9") and rap.have_data() and not scenes.is(require("scenes.explorer")) then
     scenes.push(require("scenes.explorer"))
   end
   scenes.update()

@@ -26,6 +26,8 @@ function M.enter(arg)
   M.map = arg.map or 1
   M.difficulty = arg.difficulty or 1   -- 0 training, 1 rookie, 2 veteran, 3 elite
   M.pilot = arg.pilot
+  M.demo = arg.demo          -- a game/demo.lua recording to replay
+  M.demo_i = 0
   M.secret = arg.secret or {}
   M.player = arg.player or Player.new()
   if M.pilot then pilot.equip(M.pilot, M.player) end
@@ -41,6 +43,7 @@ function M.enter(arg)
   M.font = rap.find("GAME_FNT")
   M.pause = nil
   M.autofire = arg.autofire
+  if M.demo then M.player.autofire = true; M.player.demo = true end
   music.wave(M.sector, M.map)
   M.snd_warn = rap.sound("WARN_FX")
   M.snd_crash = rap.sound("CRASH_FX")
@@ -65,7 +68,12 @@ end
 
 function M.update()
   if M.pause then
-    if M.pause:update() then M.pause = nil end
+    if M.pause:update() then M.pause = nil; rap.grab_mouse(not rap.headless()) end
+    return
+  end
+  if M.demo and (rap.pressed("Escape") or rap.pressed("Return") or rap.pressed("Space") or rap.pressed("mouse_left")
+      or rap.pressed("pad_a") or rap.pressed("pad_start") or rap.pressed("Left Alt")) then
+    scenes.switch(require("scenes.mainmenu"))
     return
   end
   -- Esc (START on a pad / the Xbox 360) opens the main menu over the game,
@@ -78,10 +86,15 @@ function M.update()
     M.pause = dialogs.message("PAUSED - PRESS ANY KEY")
     return
   end
+  if rap.pressed("F1") then
+    rap.grab_mouse(false)
+    M.pause = dialogs.help("GAMEHLP1_TXT")
+    return
+  end
   M.fade = math.min(1, M.fade + 1 / 35)
   local lv, pl = M.level, M.player
-  pl.autofire = M.autofire
-  if M.autofire and not pl.autopilot then
+  pl.autofire = M.autofire or M.demo ~= nil
+  if M.autofire and not M.demo and not pl.autopilot then
     pl.autopilot = function()
       local best, by
       for _, b in ipairs(M.bonus.list) do return b.x + b.w / 2 end   -- pickups first
@@ -112,7 +125,22 @@ function M.update()
     lv:update()                                   -- 1 pixel per frame
     local scroll = before - lv.cam
     for _, a in ipairs(lv:take_spawns(M.difficulty)) do M.enemies:spawn(a, a.y * 32 - lv.cam) end
-    if not pl.dead and (util.held("fire") or pl.autofire) then M.weapons:fire_all(pl, M.enemies) end
+    if M.demo then
+      -- Replay: the recorded ship position, bank and buttons for this frame.
+      M.demo_i = M.demo_i + 1
+      local r = M.demo.frames[M.demo_i]
+      if not r then scenes.switch(require("scenes.mainmenu")); return end
+      pl.x, pl.y = r.x, r.y
+      pl.bank = r.bank - 3
+      if r.special and not M.demo_special then pl:next_special(Weapons.FIRST_SPECIAL, Weapons.LAST_SPECIAL) end
+      M.demo_special = r.special
+      if r.bomb and not M.demo_bomb and pl:bombs() > 0 then
+        pl.items[Weapons.MEGABOMB] = pl:bombs() - 1
+        M.enemies:megabomb(M.shots, pl, M.bonus)
+      end
+      M.demo_bomb = r.bomb
+      if r.fire then M.weapons:fire_all(pl, M.enemies) end
+    elseif not pl.dead and (util.held("fire") or pl.autofire) then M.weapons:fire_all(pl, M.enemies) end
     M.enemies:step(scroll, pl, M.shots)
     -- A boss on screen (an enemy whose record names a song) keeps the boss
     -- sound going, as the original does.

@@ -186,10 +186,13 @@ local function font_of(f)
   return (f.font ~= "" and rap.find(f.font)) or rap.find("SYSTEM_FNT")
 end
 
+-- Text in a field: glyph shade + the field's base colour, or (no base
+-- colour) the font's own pixels. (The field's colour is its box's colour,
+-- not the text's: using it hid the help window's button labels.)
 local function draw_text(f, text, x, y, base)
   local font = font_of(f)
   if base and base > 0 then return rap.text(font, text, x, y, base, true) end
-  return rap.text(font, text, x, y, f.color > 0 and f.color or -1)
+  return rap.text(font, text, x, y, -1)
 end
 
 -- Text fields that name a _TXT item run that item's layout script: lines are
@@ -243,7 +246,7 @@ function M:draw()
       elseif f.type == T_ICON then
         if item ~= "" then rap.pic(item, x, y) end
       elseif f.type == T_TEXT or f.type == T_DRAGBAR then
-        if item:match("_TXT$") then draw_script(f, ox, oy, item)
+        if type(item) == "number" or item:match("_TXT$") then draw_script(f, ox, oy, item)
         elseif text ~= "" then draw_text(f, text, x, y, f.base) end
       elseif f.type == T_BUTTON then
         local down = f == sel and (rap.held("mouse_left") or rap.held("Return"))

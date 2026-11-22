@@ -23,6 +23,7 @@ Controls
   B                      next special weapon
   Y                      megabomb
   START                  pause / continue
+  RB                     help
   BACK                   choose in menus
 
 Settings (volumes, game speed) are saved next to raptua.xex.
