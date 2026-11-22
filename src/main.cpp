@@ -153,6 +153,7 @@ int main(int argc, char** argv) {
 #else
     Uint32 sdl_flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER;
 #endif
+    log_line(std::string("raptua ") + RAPTUA_VERSION + " starting");
 #ifdef _WIN32
     // The window's icon: the executable's own (src/raptua.rc).
     SDL_SetHint(SDL_HINT_WINDOWS_INTRESOURCE_ICON, "1");
@@ -170,13 +171,22 @@ int main(int argc, char** argv) {
         int n = eng->glb.open_dir(eng->data_dir, &err);
         if (n < 2) eng->data_error = n < 0 ? err : "FILE0000.GLB and FILE0001.GLB not found in " + eng->data_dir;
     }
+    log_line("SDL started");
     if (!eng->window.open("Raptua", scale, fullscreen, headless)) {
-        std::fprintf(stderr, "window: %s\n", SDL_GetError());
+        log_line(std::string("window: ") + SDL_GetError());
         return 1;
+    }
+    if (SDL_Renderer* r = eng->window.renderer()) {
+        SDL_RendererInfo ri{};
+        int ow = 0, oh = 0;
+        SDL_GetRendererInfo(r, &ri);
+        SDL_GetRendererOutputSize(r, &ow, &oh);
+        log_line(std::string("renderer: ") + (ri.name ? ri.name : "?") + " " + std::to_string(ow) + "x" + std::to_string(oh));
     }
     // Headless runs open audio too (CI sets SDL_AUDIODRIVER=dummy), so the
     // boot tests exercise the music and sound paths.
     eng->audio_ok = eng->audio.open();
+    log_line(eng->audio_ok ? "audio open" : std::string("no audio: ") + SDL_GetError());
 
     lua_State* L = luaL_newstate();
     luaL_openlibs(L);
@@ -215,6 +225,7 @@ int main(int argc, char** argv) {
     const Uint64 freq = SDL_GetPerformanceFrequency();
     Uint64 last = SDL_GetPerformanceCounter(), acc = 0;
     int ticks = 0;
+    bool first_frame_logged = false;
     if (!eng->window.headless()) SDL_StartTextInput();
     while (rc == 0 && !eng->quit && !selftest) {
         SDL_Event ev;
@@ -245,6 +256,7 @@ int main(int argc, char** argv) {
         }
         if (steps && !call(L, "draw")) rc = 2;
         eng->window.present(eng->screen);
+        if (ticks > 0 && !first_frame_logged) { log_line("first frame shown"); first_frame_logged = true; }
         if (headless && ticks >= headless_ticks) break;
         if (!steps) SDL_Delay(1);
     }
