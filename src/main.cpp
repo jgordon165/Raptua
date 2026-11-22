@@ -16,6 +16,11 @@
 
 #include "formats/fsx.h"
 #include "lua_api.h"
+#ifdef RAPTUA_XENON_LAYOUT
+extern "C" {
+#include "xenon_platform.h"
+}
+#endif
 
 using namespace raptua;
 
@@ -239,6 +244,17 @@ int main(int argc, char** argv) {
         if (!steps) SDL_Delay(1);
     }
     if (rc == 2 && !selftest) fatal_screen(eng, g_last_error);
+#ifdef RAPTUA_XENON_LAYOUT
+    // On the Xbox 360 the title ends here and the console goes back to its
+    // dashboard: a black frame, then the platform stops the sound and ends
+    // the title. Not a return from main, whose clean-up would run while the
+    // sound feeder is still mixing.
+    if (!eng->window.headless() && xp_can_exit()) {
+        eng->screen.fade = 0.0f;
+        eng->window.present(eng->screen);
+        xp_exit_title(rc);
+    }
+#endif
     call(L, "shutdown");
     lua_close(L);
     eng->audio.close();

@@ -26,6 +26,11 @@ Controls
   RB                     help
   BACK                   choose in menus
 
+To leave, choose QUIT on the main menu (or press B there) and answer YES to
+"Return to the dashboard?". The title stops its sound and ends; the console
+goes to its default dashboard (Aurora or FreeStyle if DashLaunch makes it
+the default).
+
 Settings (volumes, game speed) are saved next to raptua.xex.
 
 If something goes wrong

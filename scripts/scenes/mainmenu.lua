@@ -23,7 +23,9 @@ function M.enter(arg)
   M.font = rap.find("SYSTEM_FNT")
   if M.win then
     if not M.resume then M.win:hide("RETURN") end
-    if rap.platform == "xenon" then M.win:hide("QUIT") end
+    -- Quit is there wherever the game can end: on the Xbox 360 only the .xex,
+    -- which goes back to the dashboard (the XeLL build has nowhere to go).
+    if not rap.can_exit() then M.win:hide("QUIT") end
 
   end
   music.menu(M.resume ~= nil)
@@ -51,7 +53,8 @@ local function activate(name)
   elseif name == "CREDITS" then
     scenes.push(require("scenes.textscreen"), { window = "CREDIT_SWD", credits = true, in_game = M.resume ~= nil })
   elseif name == "QUIT" then
-    push(dialogs.ask("QUIT RAPTUA?", function(yes) if yes then rap.quit() end end))
+    local q = rap.platform == "xenon" and "RETURN TO THE DASHBOARD?" or "QUIT RAPTUA?"
+    push(dialogs.ask(q, function(yes) if yes then rap.quit() end end))
   elseif name == "RETURN" and M.resume then
     local p = M.resume
     M.resume = nil
@@ -86,7 +89,7 @@ function M.update()
   if M.win.moved then rap.play(M.snd_move, 0.5) end
   if r == "cancel" then
     if M.resume then activate("RETURN")
-    elseif rap.platform ~= "xenon" then activate("QUIT") end
+    elseif rap.can_exit() then activate("QUIT") end
   elseif r then
     rap.play(M.snd_move, 0.7)
     activate(r)
