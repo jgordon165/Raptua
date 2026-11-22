@@ -54,6 +54,19 @@ M.MEGABOMB, M.SUPER_SHIELD, M.ENERGY = 11, 15, 16
 M.FIRST_SPECIAL, M.LAST_SPECIAL = 3, 14
 M.CASH = { [18] = 93800, [19] = 76000, [20] = 55700, [21] = 35200, [22] = 122500, [23] = 50 }
 
+-- Store prices (the original's). Energy and megabombs come in lots: one
+-- purchase is 25 shield points / one megabomb. Selling pays half.
+M.COST = {
+  [0] = 12000, [1] = 78800, [2] = 175600, [3] = 145200, [4] = 250650, [5] = 512850,
+  [6] = 204950, [7] = 63500, [8] = 110000, [9] = 98200, [10] = 300750, [11] = 32250,
+  [12] = 725000, [13] = 1750000, [14] = 950000, [15] = 78500, [16] = 400 * 25, [17] = 10000,
+}
+M.MAX = { [11] = 5 }          -- most you can carry (others: one)
+M.NAMES = {
+  [11] = "MEGA BOMB", [15] = "PHASE SHIELD", [16] = "SHIELD ENERGY", [17] = "DAMAGE DETECTOR",
+}
+function M.name(n) return (LIB[n] and LIB[n].name) or M.NAMES[n] or ("ITEM %d"):format(n) end
+
 -- Wing positions (pixels either side of the ship's centre) per bank frame
 -- 0..6: machine guns, missile racks (pods, air-to-air, air-to-ground),
 -- micro missile launchers.

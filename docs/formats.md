@@ -87,6 +87,14 @@ A field's text is `maxchars` bytes at (field start + text offset), in a text are
 
 Apogee logo `APOGEE`, intro `RINTRO`, main menu `MAINMENU` (`RINTRO` when opened over a game), hangar and sector pick `HANGAR`, death `RAP5`, credits `BOSS4`, `BOSS2`, `BOSS3` in turn. Each wave plays from a per-sector table (`scripts/game/music.lua`); sector 1 is `RAP8, RAP2, RAP4, RAP7, RAP6, RAP2, RAP3, RAP4, RAP6`. An enemy whose sprite record names a song keeps the boss sound effect going while it's on screen.
 
+## Hangar, ship computer and store (known flow)
+
+- **New Mission** opens registration (`REGISTER_SWD`): name, callsign and one of four photos, then the difficulty. **Load Mission** opens the pilot list (`LOAD_SWD`). Both lead to the hangar.
+- **Hangar** (`HANGAR_SWD`): four view areas (type 11 fields): fly a mission, the supply room, main menu, save. The selection starts on the supply room.
+- **Ship computer** (`SHIPCOMP_SWD`): pick a sector (each needs its data file: `FILE0001.GLB` for sector 1, `FILE0002/3.GLB` for 2 and 3), or auto-select the first one not cleared. Its three buttons toggle lights that switch on the secret enemies (actor levels 0–2). `LOADCOMP_SWD` shows the sector and wave while the mission loads.
+- **Store** (`STORE_SWD`): buy and sell modes, previous/next, accept. Object *n*'s description is `ITEMnn_TXT`. Selling pays half the price. Energy is sold in lots of 25 shield points and megabombs one at a time (up to 5). The shareware store sells objects 0–4, 6–8, 11, 12 and 15–17.
+- After each wave the pilot lands back at the hangar. Raptua saves pilots in its own format (`pilotN.lua` in the preferences folder), not the original's.
+
 ## Difficulty (known)
 
 Map actors carry a level: 3 easy, 4 medium, 5 hard, 0–2 secret. Training and Rookie spawn level 3 only, Veteran 3–4, Elite 3–5. On Training and Rookie, bosses get half their hit points and a quarter fewer volleys.

@@ -29,6 +29,7 @@ function M.options()
   local function detail_label() w:set_text("DETAIL", settings.detail and "HIGH DETAIL" or "LOW DETAIL") end
   detail_label()
   w.values.VMUSIC, w.values.VFX = settings.music, settings.sound
+  w:focus_area("VMUSIC"); w:focus_area("VFX")
   local d = simple(w, function(r)
     if r == "DETAIL" then
       settings.detail = not settings.detail
@@ -93,6 +94,55 @@ function M.message(text, seconds)
       if seconds and t > seconds * 70 then return true end
     end,
     draw = function(self) w:draw() end,
+  }
+end
+
+-- LOAD MISSION: browse saved pilots; pick(p) with the chosen pilot, or
+-- pick(nil) on cancel. Returns nil (and calls none) if there are none, so
+-- the caller can say so.
+function M.load_pilot(pick)
+  local pilot = require("game.pilot")
+  local list = pilot.list()
+  if #list == 0 then return nil end
+  local w = swd.open("LOAD_SWD")
+  if not w then return nil end
+  local pos = 1
+  local confirm
+  local function show()
+    local p = list[pos]
+    w:set_item("IDPIC", pilot.PHOTOS[p.photo] or pilot.PHOTOS[1])
+    w:set_text("NAME", p.name or "")
+    w:set_text("CALL", p.callsign or "")
+    w:set_text("CREDITS", tostring(p.money or 0))
+  end
+  show()
+  w:select("LOAD")
+  return {
+    win = w,
+    update = function(self)
+      if confirm then
+        if confirm:update() then confirm = nil end
+        return self.done
+      end
+      local r = w:update()
+      if r == "NEXT" then pos = pos % #list + 1; show()
+      elseif r == "PREV" then pos = (pos - 2) % #list + 1; show()
+      elseif r == "LOAD" then pick(list[pos]); return true
+      elseif r == "DEL" then
+        confirm = M.ask("DELETE THIS PILOT?", function(yes)
+          if not yes then return end
+          pilot.delete(list[pos])
+          table.remove(list, pos)
+          if #list == 0 then pick(nil); self.done = true; return end
+          pos = math.min(pos, #list)
+          show()
+        end)
+      elseif r == "CANCEL" or r == "cancel" then pick(nil); return true end
+    end,
+    draw = function(self)
+      w:draw()
+      if confirm then confirm:draw() end
+    end,
   }
 end
 

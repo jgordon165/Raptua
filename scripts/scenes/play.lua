@@ -11,6 +11,7 @@ local Weapons = require("game.weapons")
 local settings = require("core.settings")
 local music = require("game.music")
 local dialogs = require("ui.dialogs")
+local pilot = require("game.pilot")
 
 -- The world, enemies, shots and scrolling run on game frames: one every
 -- `settings.cadence` vertical blanks (3 = the original's ceiling of
@@ -24,9 +25,12 @@ function M.enter(arg)
   M.sector = arg.sector or 1
   M.map = arg.map or 1
   M.difficulty = arg.difficulty or 1   -- 0 training, 1 rookie, 2 veteran, 3 elite
+  M.pilot = arg.pilot
+  M.secret = arg.secret or {}
   M.player = arg.player or Player.new()
+  if M.pilot then pilot.equip(M.pilot, M.player) end
   M.player.shield, M.player.dead = math.max(M.player.shield, 100), false
-  local lv, err = Level.new(("MAP%dG1_MAP"):format(M.map))
+  local lv, err = Level.new(("MAP%dG%d_MAP"):format(M.map, M.sector), M.secret)
   if not lv then io.stderr:write(err, "\n"); scenes.switch(require("scenes.mainmenu")); return end
   M.level = lv
   M.shots = Shots.new()
@@ -142,6 +146,12 @@ function M.update()
     if M.end_t > 160 then
       if pl.dead then
         scenes.switch(require("scenes.mainmenu"))
+      elseif M.pilot then
+        -- Wave flown: the pilot keeps what the ship has, moves on a wave,
+        -- and lands at the hangar (as in the original).
+        pilot.collect(M.pilot, pl)
+        pilot.wave_done(M.pilot, M.sector)
+        scenes.switch(require("scenes.hangar"), { pilot = M.pilot })
       else
         local nxt = M.map + 1
         if rap.find(("MAP%dG1_MAP"):format(nxt)) then

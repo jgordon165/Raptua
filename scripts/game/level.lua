@@ -7,7 +7,7 @@ local TILE, W, H = 32, 9, 150
 M.X0 = (rap.W - W * TILE) // 2        -- the 288-pixel map, centred
 M.VIEW_H = rap.H
 
-function M.new(map_name, tileset)
+function M.new(map_name, secret)
   local data = rap.level(map_name)
   if not data then return nil, "missing " .. map_name end
   local self = setmetatable({}, M)
@@ -16,7 +16,8 @@ function M.new(map_name, tileset)
   -- Tile n of set s is the item after STARTG{s+1}TILES, plus n.
   self.tile_base = {}
   for s = 0, 3 do self.tile_base[s] = rap.find(("STARTG%dTILES"):format(s + 1)) end
-  self.tileset = tileset or 1
+  self.tileset = 1
+  self.secret = secret or {}
   -- Per-tile damage rules (FLATSG1_ITM): hits = -1 means indestructible;
   -- otherwise the tile becomes `linkflat` (its wreck: rubble, a broken
   -- bridge) when its hit points run out, paying `bounty`.
@@ -43,10 +44,11 @@ function M:take_spawns(difficulty)
     -- An actor appears when its row is 3 rows above the top of the screen.
     if a.y * TILE < self.cam - 3 * TILE then break end
     self.next_actor = self.next_actor + 1
-    -- Actor levels: 3 easy, 4 medium, 5 hard, 0..2 secret (not unlocked
-    -- yet). Training and rookie see easy only; veteran easy and medium;
+    -- Actor levels: 3 easy, 4 medium, 5 hard, 0..2 secret (switched on by
+    -- the ship computer's three lights). Training and rookie see easy only; veteran easy and medium;
     -- elite all three.
     local ok = a.level == 3 or (a.level == 4 and difficulty >= 2) or (a.level == 5 and difficulty >= 3)
+      or (a.level <= 2 and self.secret[a.level + 1])   -- the ship computer's secret lights
     if ok then out[#out + 1] = a end
   end
   return out
