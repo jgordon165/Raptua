@@ -1,7 +1,7 @@
 -- Start-up: the Apogee logo (APOGEE_PIC in its own palette, POGPAL_DAT)
 -- with its jingle, then the Cygnus logo (CYGNUS_PIC, CYGPAL_DAT), fading in
--- and out, then the main menu. Any key skips. (The original's animated
--- intro movies, *_AGX, aren't played yet.)
+-- and out, then the intro movie (game/movies.lua) under the intro theme,
+-- then the main menu. Any key skips the logos; any key skips the movie.
 local scenes = require("core.scenes")
 local music = require("game.music")
 
@@ -23,7 +23,10 @@ function M.next_step()
   local s = M.steps[M.i]
   if not s then
     rap.fade(1)
-    scenes.switch(require("scenes.mainmenu"))
+    music.intro()
+    scenes.switch(require("scenes.movie"), { sequence = "intro", done = function()
+      scenes.switch(require("scenes.mainmenu"))
+    end })
     return
   end
   if not rap.palette(s.pal) then rap.palette("PALETTE_DAT") end

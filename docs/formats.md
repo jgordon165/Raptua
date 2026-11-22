@@ -75,6 +75,17 @@ DMX MUS: `"MUS\x1A", u16 score_len, u16 score_start, u16 channels, u16 secondary
 
 Raptua plays them on an emulated OPL3 (ymfm's YMF262), 18 voices, with left/right from the MUS pan controller.
 
+## Movies `*_AGX` (known)
+
+A movie is a run of consecutive `_AGX` items sharing one name, one per frame. Each frame is a list of runs: `u16 marker` (0 ends the frame), `u16 unused`, `u16 offset`, `u16 length`, then `length` palette indices copied to that offset in the 320×200 screen. Anything not in a run stays as it was, so later frames hold only what changed, and an 8-byte all-zero frame changes nothing. A movie's first frame starts with one extra byte, the colour to clear the screen to before its runs. Movies are drawn in the game palette (`PALETTE_DAT`).
+
+The original's sequences (frame rates in 70 Hz vertical blanks; `scripts/game/movies.lua`):
+
+- **Intro:** `CHASE` (8, fly-bys on frames 4 and 9), `SHIPSD1` twice (18, jet loop), `PILOT` (10), `SHIPSD1` then `SHIPSD2` (18, gunfire), `EXPLO` (12, hits then explosions, fading out).
+- **Landing:** `BASE` (not in the shareware), then `LANDING` (10).
+- **Death:** `DOWN` (11), then `SDEATH` (3, eight times).
+- **Sector cleared:** `GAME1END` (4, eight times).
+
 ## Window layouts `*_SWD` (known)
 
 The menus and dialogs. Each starts with a 120-byte window header: eight `i32` (version, size, arrow-key flag, display, two unused, id, type), the window's name and fill item as `char[16]` each, then `i32` item, fill (0 colour, 1 texture tiled, 2 picture, 3 see-through), lock, offset of the first field, text offset, first focused field, option, colour, field count, x, y, width, height, shadow.

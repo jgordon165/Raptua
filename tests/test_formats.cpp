@@ -11,6 +11,7 @@
 #include "formats/sound.h"
 #include "formats/mus.h"
 #include "formats/swd.h"
+#include "formats/agx.h"
 #include "music.h"
 
 #include <cmath>
@@ -219,6 +220,29 @@ static void test_swd() {
     CHECK(!decode_swd(bad, win));
 }
 
+static void test_agx() {
+    Bytes f;
+    put16(f, 1); put16(f, 0); put16(f, 321); put16(f, 3);   // run at (1, 1), 3 pixels
+    f.insert(f.end(), {7, 8, 9});
+    put16(f, 0); put16(f, 0); put16(f, 0); put16(f, 0);      // end
+    AgxFrame a;
+    CHECK(decode_agx(f, a) && a.runs.size() == 1 && a.runs[0].offset == 321 && a.runs[0].length == 3);
+    std::vector<uint8_t> screen(320 * 200, 5);
+    apply_agx(a, screen.data());
+    CHECK(screen[320] == 5 && screen[321] == 7 && screen[323] == 9 && screen[324] == 5);
+    Bytes empty(8, 0);
+    CHECK(decode_agx(empty, a) && a.runs.empty());
+    Bytes past;
+    put16(past, 1); put16(past, 0); put16(past, 63999); put16(past, 4);   // runs off the screen
+    past.insert(past.end(), {1, 2, 3, 4});
+    CHECK(!decode_agx(past, a));
+    Bytes first = {42};                                     // a first frame: fill byte, then runs
+    first.insert(first.end(), f.begin(), f.end());
+    CHECK(decode_agx(first, a, true) && a.clear && a.fill == 42 && a.runs.size() == 1);
+    apply_agx(a, screen.data());
+    CHECK(screen[0] == 42 && screen[321] == 7 && screen[63999] == 42);
+}
+
 static void test_real_data(const std::string& dir) {
     GlbSet set;
     std::string err;
@@ -288,6 +312,23 @@ static void test_real_data(const std::string& dir) {
         if (!ok) std::fprintf(stderr, "no digital sound for %s\n", fx);
         CHECK(ok);
     }
+    // Movies: every frame of every AGX movie decodes and stays on screen.
+    {
+        int frames = 0, bad = 0;
+        for (size_t fi = 0; fi < set.file_count(); ++fi) {
+            const auto& es = set.file(fi).entries();
+            for (size_t i = 0; i < es.size(); ++i) {
+                const std::string& n = es[i].name;
+                if (n.size() < 4 || n.compare(n.size() - 4, 4, "_AGX") != 0) continue;
+                // A movie's first frame is the first item with its name.
+                bool first = i == 0 || es[i - 1].name != n;
+                AgxFrame a;
+                ++frames;
+                if (!decode_agx(set.read(uint32_t(fi << 16 | i)), a, first)) ++bad;
+            }
+        }
+        CHECK(frames > 100 && bad == 0);
+    }
     // Window layouts: structure only (their text stays in the player's data).
     for (const char* name : {"MAIN_SWD", "OPTS_SWD", "ASKDIFF_SWD", "ASK_SWD", "MSG_SWD", "CREDIT_SWD", "ORDER_SWD",
                              "HANGAR_SWD", "SHIPCOMP_SWD", "STORE_SWD"}) {
@@ -320,6 +361,7 @@ int main(int argc, char** argv) {
     test_font_sound();
     test_music();
     test_swd();
+    test_agx();
     if (argc >= 3 && std::strcmp(argv[1], "--data") == 0) test_real_data(argv[2]);
     if (g_fail) { std::fprintf(stderr, "%d check(s) failed\n", g_fail); return 1; }
     std::printf("all format tests passed\n");

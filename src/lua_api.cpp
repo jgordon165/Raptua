@@ -7,6 +7,7 @@
 #include "formats/level.h"
 #include "formats/mus.h"
 #include "formats/swd.h"
+#include "formats/agx.h"
 
 namespace raptua {
 
@@ -135,6 +136,19 @@ int l_rect(lua_State* L) {
 int l_pixel(lua_State* L) {
     E(L)->screen.pixel(int(luaL_checkinteger(L, 1)), int(luaL_checkinteger(L, 2)), uint8_t(luaL_checkinteger(L, 3)));
     return 0;
+}
+
+// agx(item [, first]) -> drawn?  Paints a movie frame over what's on
+// screen (frames after the first only hold what changed). `first`: the
+// movie's first frame, which clears the screen to its fill colour.
+int l_agx(lua_State* L) {
+    auto* e = E(L);
+    auto h = handle_arg(L, e, 1);
+    AgxFrame f;
+    bool ok = h && decode_agx(e->glb.read(*h), f, lua_toboolean(L, 2));
+    if (ok) apply_agx(f, e->screen.px.data());
+    lua_pushboolean(L, ok);
+    return 1;
 }
 
 int l_shade(lua_State* L) {   // shade(x, y, w, h, level): -2..2, darker..lighter
@@ -474,7 +488,7 @@ void register_lua_api(lua_State* L, Engine* e) {
         {"find", l_find}, {"item", l_item}, {"item_count", l_item_count}, {"file_count", l_file_count},
         {"read", l_read},
         {"palette", l_palette}, {"palette_rgb", l_palette_rgb}, {"fade", l_fade},
-        {"clear", l_clear}, {"rect", l_rect}, {"shade", l_shade}, {"pixel", l_pixel}, {"clip", l_clip},
+        {"clear", l_clear}, {"rect", l_rect}, {"shade", l_shade}, {"agx", l_agx}, {"pixel", l_pixel}, {"clip", l_clip},
         {"pic", l_pic}, {"pic_info", l_pic_info}, {"pic_hit", l_pic_hit},
         {"text", l_text}, {"text_size", l_text_size},
         {"level", l_level}, {"sprite_lib", l_sprite_lib}, {"flats", l_flats}, {"swd", l_swd},

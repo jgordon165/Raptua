@@ -145,13 +145,23 @@ function M.update()
     M.fade = math.max(0, 1 - M.end_t / 140)
     if M.end_t > 160 then
       if pl.dead then
-        scenes.switch(require("scenes.mainmenu"))
+        -- The death movie, then the main menu (the last save stands).
+        local menu = function() scenes.switch(require("scenes.mainmenu")) end
+        if M.autofire then menu() else scenes.switch(require("scenes.movie"), { sequence = "death", done = menu }) end
       elseif M.pilot then
         -- Wave flown: the pilot keeps what the ship has, moves on a wave,
-        -- and lands at the hangar (as in the original).
+        -- and lands at the hangar (the landing movie first; the sector's
+        -- end movie too after its last wave), as in the original.
         pilot.collect(M.pilot, pl)
         pilot.wave_done(M.pilot, M.sector)
-        scenes.switch(require("scenes.hangar"), { pilot = M.pilot })
+        local p, sector = M.pilot, M.sector
+        local hangar = function() scenes.switch(require("scenes.hangar"), { pilot = p }) end
+        local land = function() scenes.switch(require("scenes.movie"), { sequence = "landing", done = hangar }) end
+        if pilot.sector_done(p, sector) then
+          scenes.switch(require("scenes.movie"), { sequence = "sector_end", done = land })
+        else
+          land()
+        end
       else
         local nxt = M.map + 1
         if rap.find(("MAP%dG1_MAP"):format(nxt)) then
