@@ -154,6 +154,13 @@ endif()
 if(XSDK)
     # A normal title: xsdk links its start-up and library, then packs raptua.xex.
     xsdk_add_xex(raptua)
+    # Raptua's own title ID ("RAPT"), so Aurora keeps its art and settings
+    # apart from other xsdk titles (xsdk's default ID is shared by all of
+    # them). Packs raptua.xex again after xsdk_add_xex's packing.
+    add_custom_command(TARGET raptua POST_BUILD
+        COMMAND python3 "${XSDK_ROOT}/tools/elf2xex.py" --title-id 52415054
+                "$<TARGET_FILE:raptua>" "$<TARGET_FILE_DIR:raptua>/raptua.xex"
+        VERBATIM)
 endif()
 raptua_warnings(raptua)
 target_compile_definitions(raptua PRIVATE RAPTUA_VERSION="${PROJECT_VERSION}")

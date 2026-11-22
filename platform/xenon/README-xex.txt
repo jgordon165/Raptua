@@ -33,6 +33,15 @@ the default).
 
 Settings (volumes, game speed) are saved next to raptua.xex.
 
+Aurora art
+----------
+The aurora/ folder has Raptua's own pictures at Aurora's asset sizes:
+icon.png (64x64), banner.png (420x96), boxart.png (900x600) and
+background.png (1280x720). Raptua has its own title ID (52415054), so in
+Aurora you can give it these as its assets (from the game's asset options,
+loading the images from the USB stick) without them showing on other
+homebrew titles.
+
 If something goes wrong
 -----------------------
 If the data files aren't found, the screen says so and shows the folder it

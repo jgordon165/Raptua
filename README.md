@@ -91,3 +91,7 @@ On Linux, install the SDL2 build dependencies first (see `.github/actions/config
 ## Legal
 
 Raptor: Call of the Shadows is © Cygnus Studios / Mountain King Studios. Raptua contains none of its code or data. It is an independent reimplementation that reads files you supply.
+
+## Aurora art (Xbox 360)
+
+`assets/aurora/` holds Raptua's own icon, banner, box art and background for the Aurora dashboard, drawn from scratch by `tools/make_aurora_art.py` (no game art). The `.xex` package includes them in `aurora/`, and the title has its own title ID (`52415054`), so Aurora keeps these assets separate from other homebrew.
