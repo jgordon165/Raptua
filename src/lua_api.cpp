@@ -503,11 +503,21 @@ int l_screenshot(lua_State* L) {   // screenshot(path) -> ok  (BMP of the 320x20
 }
 int l_millis(lua_State* L) { lua_pushinteger(L, lua_Integer(SDL_GetTicks64())); return 1; }
 
+// Where settings and pilots are kept: SDL's per-user folder, or on the Wii U
+// (whose SDL has none) the port's folder on the SD card.
+char* pref_dir() {
+#ifdef RAPTUA_WIIU
+    return SDL_strdup("fs:/vol/external01/wiiu/apps/raptua/");
+#else
+    return SDL_GetPrefPath("Raptua", "Raptua");
+#endif
+}
+
 int l_save_file(lua_State* L) {   // save_file(name, string) -> ok  (in the user pref dir)
     size_t n;
     const char* name = luaL_checkstring(L, 1);
     const char* data = luaL_checklstring(L, 2, &n);
-    char* dir = SDL_GetPrefPath("Raptua", "Raptua");
+    char* dir = pref_dir();
     bool ok = false;
     if (dir) {
         std::string p = std::string(dir) + name;
@@ -520,7 +530,7 @@ int l_save_file(lua_State* L) {   // save_file(name, string) -> ok  (in the user
 
 int l_load_file(lua_State* L) {
     const char* name = luaL_checkstring(L, 1);
-    char* dir = SDL_GetPrefPath("Raptua", "Raptua");
+    char* dir = pref_dir();
     if (!dir) { lua_pushnil(L); return 1; }
     std::string p = std::string(dir) + name;
     SDL_free(dir);
@@ -560,9 +570,12 @@ void register_lua_api(lua_State* L, Engine* e) {
     lua_pushlightuserdata(L, e);
     luaL_setfuncs(L, fns, 1);
     lua_pushstring(L, RAPTUA_VERSION); lua_setfield(L, -2, "version");
-    // "xenon" on the Xbox 360 (a controller, no keyboard or mouse), else "pc".
+    // "xenon" on the Xbox 360 (a controller, no keyboard or mouse), "wiiu" on
+    // the Wii U (GamePad or Pro Controller), else "pc".
 #ifdef RAPTUA_XENON_LAYOUT
     lua_pushstring(L, "xenon");
+#elif defined(RAPTUA_WIIU)
+    lua_pushstring(L, "wiiu");
 #else
     lua_pushstring(L, "pc");
 #endif

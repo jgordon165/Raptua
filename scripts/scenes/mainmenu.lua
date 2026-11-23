@@ -53,7 +53,8 @@ local function activate(name)
   elseif name == "CREDITS" then
     scenes.push(require("scenes.textscreen"), { window = "CREDIT_SWD", credits = true, in_game = M.resume ~= nil })
   elseif name == "QUIT" then
-    local q = rap.platform == "xenon" and "RETURN TO THE DASHBOARD?" or "QUIT RAPTUA?"
+    local q = rap.platform == "xenon" and "RETURN TO THE DASHBOARD?"
+      or rap.platform == "wiiu" and "RETURN TO THE WII U MENU?" or "QUIT RAPTUA?"
     push(dialogs.ask(q, function(yes) if yes then rap.quit() end end))
   elseif name == "RETURN" and M.resume then
     local p = M.resume

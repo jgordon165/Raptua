@@ -22,8 +22,8 @@ function M.enter()
     M.win:focus_area("VIEWID"); M.win:focus_area("VIEWREG"); M.win:focus_area("VIEWEXIT")
     M.win:set_item("IDPIC", pilot.ID_PHOTOS[M.photo])
     M.win:select("NAME")
-    -- No keyboard on the Xbox 360: start with a name and callsign filled in.
-    if rap.platform == "xenon" then
+    -- No keyboard on the consoles: start with a name and callsign filled in.
+    if rap.platform == "xenon" or rap.platform == "wiiu" then
       M.win:set_text("NAME", "PILOT")
       M.win:set_text("CALLSIGN", ("RAPTOR %d"):format(#pilot.list() + 1))
     end

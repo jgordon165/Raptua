@@ -26,7 +26,18 @@ using namespace raptua;
 
 namespace {
 
+#ifdef RAPTUA_WIIU
+// The Wii U: everything of the player's (the GLB files in data/, settings,
+// pilots, raptua.log) lives in the port's folder on the SD card, where Aroma
+// keeps homebrew; the scripts ride inside the .wuhb, at /vol/content.
+constexpr const char* kWiiUDir = "fs:/vol/external01/wiiu/apps/raptua/";
+constexpr const char* kWiiUContent = "fs:/vol/content";
+#endif
+
 std::string exe_dir() {
+#ifdef RAPTUA_WIIU
+    return kWiiUDir;
+#endif
     char* b = SDL_GetBasePath();
     std::string s = b ? b : "./";
     SDL_free(b);
@@ -41,9 +52,9 @@ std::string locate_data(const std::string& given) {
     if (!given.empty()) return given;
     std::vector<std::string> c = {exe_dir(), ".", exe_dir() + "RAPTOR", "RAPTOR", exe_dir() + "data", "data"};
     for (auto& d : c) if (has_glb(d)) return d;
-#ifdef RAPTUA_XENON_LAYOUT
-    // The Xbox 360 starts with no arguments: the GLB files go in data/ in
-    // the port's folder on the USB stick (README, "Xbox 360").
+#if defined(RAPTUA_XENON_LAYOUT) || defined(RAPTUA_WIIU)
+    // The consoles start with no arguments: the GLB files go in data/ in the
+    // port's folder (the USB stick on the Xbox 360, the SD card on the Wii U).
     return exe_dir() + "data";
 #else
     return exe_dir();
@@ -52,6 +63,9 @@ std::string locate_data(const std::string& given) {
 
 std::string locate_scripts(const std::string& given) {
     if (!given.empty()) return given;
+#ifdef RAPTUA_WIIU
+    if (fsx::exists(fsx::join(kWiiUContent, "main.lua"))) return kWiiUContent;   // inside the .wuhb
+#endif
     for (auto d : {exe_dir() + "scripts", std::string("scripts")})
         if (fsx::exists(fsx::join(d, "main.lua"))) return d;
     return exe_dir() + "scripts";
@@ -61,7 +75,7 @@ std::string locate_scripts(const std::string& given) {
 // raptua.log in the port's folder.
 void log_line(const std::string& msg) {
     std::fprintf(stderr, "%s\n", msg.c_str());
-#ifdef RAPTUA_XENON_LAYOUT
+#if defined(RAPTUA_XENON_LAYOUT) || defined(RAPTUA_WIIU)
     if (FILE* f = std::fopen((exe_dir() + "raptua.log").c_str(), "a")) {
         std::fprintf(f, "%s\n", msg.c_str());
         std::fclose(f);
@@ -88,8 +102,10 @@ void fatal_screen(Engine* eng, const std::string& msg) {
     }
     if (!line.empty()) lines.push_back(line);
     lines.push_back("");
-#ifdef RAPTUA_XENON_LAYOUT
+#if defined(RAPTUA_XENON_LAYOUT)
     lines.push_back("(also in raptua.log)  PRESS START TO EXIT");
+#elif defined(RAPTUA_WIIU)
+    lines.push_back("(also in raptua.log)  PRESS + TO EXIT");
 #else
     lines.push_back("PRESS ESC TO EXIT");
 #endif
@@ -102,6 +118,9 @@ void fatal_screen(Engine* eng, const std::string& msg) {
             // Ignore keys held from before the error for half a second.
             if (ev.type == SDL_KEYDOWN && SDL_GetTicks() - start > 500 &&
                 (ev.key.keysym.sym == SDLK_ESCAPE || ev.key.keysym.sym == SDLK_RETURN)) return;
+            // A pad's START (+ on the Wii U) or A.
+            if (ev.type == SDL_CONTROLLERBUTTONDOWN && SDL_GetTicks() - start > 500 &&
+                (ev.cbutton.button == SDL_CONTROLLER_BUTTON_START || ev.cbutton.button == SDL_CONTROLLER_BUTTON_A)) return;
         }
         eng->window.present(s);
         SDL_Delay(16);

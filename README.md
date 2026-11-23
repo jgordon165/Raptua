@@ -96,6 +96,17 @@ Raptor: Call of the Shadows is © Cygnus Studios / Mountain King Studios. Raptua
 
 `assets/raptua.ico` is Raptua's own icon (the jet from the Aurora art, drawn from scratch by `tools/make_icon.py`). The Windows build carries it in `raptua.exe`, so a shortcut to Raptua shows it in Explorer and in [Progman31lua](https://github.com/jgordon165/Progman31lua)'s Games group, and the release zip has a copy beside the executable. Besides the modern sizes it has 16-colour 32×32 and 16×16 images on the standard VGA palette, which is what Windows 3.1, and Progman31lua's Program Manager, read.
 
+## Wii U
+
+The `wiiu` workflow builds Raptua for the Aroma homebrew environment with devkitPro's wut and its Wii U SDL2:
+
+- **`raptua.wuhb`:** the bundle Aroma shows on the HOME Menu. It holds the game, its scripts and Raptua's own icon and splash screens (`tools/make_wiiu_art.py`; no game art).
+- **`raptua.rpx`:** the bare program, which reads its scripts from the SD card.
+
+The release zip is the SD card layout. Copy its `wiiu` folder to the card, then put your `FILE0000.GLB` and `FILE0001.GLB` in `wiiu/apps/raptua/data/`. Settings, pilots and `raptua.log` are kept in `wiiu/apps/raptua/`. HOME returns to the Wii U Menu, and the game shows on the TV and the GamePad. `platform/wiiu/README-wiiu.txt` has the steps and controls.
+
+To build it yourself: `dkp-pacman -S wiiu-dev wiiu-sdl2`, then `cmake -B build-wiiu -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/WiiU.cmake && cmake --build build-wiiu`.
+
 ## Aurora art (Xbox 360)
 
 `assets/aurora/` holds Raptua's own icon, banner, box art and background for the Aurora dashboard, drawn from scratch by `tools/make_aurora_art.py` (no game art). The `.xex` package includes them in `aurora/`, and the title has its own title ID (`52415054`), so Aurora keeps these assets separate from other homebrew.
