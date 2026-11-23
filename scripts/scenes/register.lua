@@ -35,6 +35,8 @@ local function sign_in()
   local name, call = M.win:text("NAME"), M.win:text("CALLSIGN")
   if name == "" or call == "" then
     M.stack[#M.stack + 1] = dialogs.message("ENTER A NAME AND A CALLSIGN", 3)
+    -- Back in the window, the box still to fill is selected, ready to type.
+    M.win:select(name == "" and "NAME" or "CALLSIGN")
     return
   end
   M.stack[#M.stack + 1] = dialogs.difficulty(function(d)

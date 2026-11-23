@@ -114,10 +114,18 @@ function M:update()
   if not usable(self, self:selected() or {}) then self:move(0, 1) end
   local mx, my, _, _, moved = rap.mouse()
   if moved or rap.pressed("mouse_left") or rap.held("mouse_left") then
+    -- The smallest field under the pointer wins: some windows put input
+    -- boxes inside a larger clickable area (REGISTER_SWD's name and callsign
+    -- lie on the sign-in clipboard), and taking the last match picked the
+    -- area, so clicking a box signed in instead of selecting it.
+    local best, best_size
     for k, i in ipairs(self.focus) do
       local f = self.def.fields[i]
-      if usable(self, f) and inside(f, self.x, self.y, mx, my) then self.sel = k end
+      if usable(self, f) and inside(f, self.x, self.y, mx, my) and (not best_size or f.w * f.h < best_size) then
+        best, best_size = k, f.w * f.h
+      end
     end
+    if best then self.sel = best end
   end
   local moved_sel
   if rap.pressed("repeat_Up") or rap.pressed("pad_dpup") then moved_sel = self:move(0, -1) end
