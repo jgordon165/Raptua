@@ -65,8 +65,9 @@ else()
         GIT_SHALLOW    TRUE)
     FetchContent_MakeAvailable(SDL2)
 endif()
-if(XSDK)
-    # newlib's <limits.h> leaves LLONG_MAX out of C++ here, and Lua then refuses
+if(XSDK OR WIIU)
+    # newlib's <limits.h> leaves LLONG_MAX out of C++ here (the xsdk and
+    # devkitPPC's Wii U newlib alike), and Lua then refuses
     # 64-bit integers (luaconf.h); C sees it, so give C++ the same (as
     # platform/xenon/toolchain.cmake does for LibXenon).
     add_compile_definitions(
