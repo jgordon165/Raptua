@@ -1,0 +1,31 @@
+name: build-snes
+description: build the Super Nintendo ROM with PVSnesLib (Raptua's own wave) and smoke-test it in the snes9x libretro core
+
+runs:
+  using: "composite"
+  steps:
+    - name: Python and Pillow
+      run: |
+        sudo apt-get update -q
+        sudo apt-get install -y -q python3-pil libretro-snes9x
+      shell: bash
+
+    - name: Cache PVSnesLib
+      uses: actions/cache@v5
+      with:
+        path: .pvsneslib
+        key: ${{runner.os}}-pvsneslib-${{hashFiles('snes/setup-pvsneslib.sh')}}
+
+    - name: Set up PVSnesLib
+      run: |
+        snes/setup-pvsneslib.sh .pvsneslib > /dev/null
+        echo "PVSNESLIB_HOME=$PWD/.pvsneslib/pvsneslib" >> "$GITHUB_ENV"
+      shell: bash
+
+    - name: Build the ROM
+      run: snes/build.sh build-snes
+      shell: bash
+
+    - name: Smoke test in snes9x
+      run: snes/tests/snes_smoke.sh build-snes/raptua-snes.sfc build-snes/raptua.sym build-snes/smoke
+      shell: bash
