@@ -60,6 +60,10 @@ Copy the `raptua` folder to a FAT32 USB stick (or the hard drive), then put `FIL
 
 To build: `cmake -DCMAKE_TOOLCHAIN_FILE=platform/xenon/toolchain.cmake` (LibXenon, in the `free60/libxenon` image) or `-DCMAKE_TOOLCHAIN_FILE=<xsdk>/cmake/xsdk.cmake`. `-DRAPTUA_XENON_SIM=ON` builds the same SDL and layout on a PC for testing (`XENON_SIM_*` variables in `platform/xenon/xenon_platform_sim.c`). The platform layer is shared with Meguarace.
 
+## Super Nintendo
+
+The `snes` workflow builds a SNES cartridge ROM with PVSnesLib: sector 1, wave 1, playable. The map scrolls in the original's game frames, and enemies fly and fire by their sprite-library records. By default the wave is Raptua's own (`tools/snes_art.py` draws it; no game content), so that ROM is in the release. `snes/build.sh --data <folder>` builds the wave from your own Raptor files, for you only. `snes/README.md` has the details, controls and build steps.
+
 ## Building
 
 You need CMake 3.20+ and a C++20 compiler. CMake downloads SDL2, Lua and ymfm (the OPL3 emulator, BSD-3) itself.

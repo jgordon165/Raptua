@@ -1,0 +1,21 @@
+# Copied into the work folder by snes/build.sh (PVSnesLib's snes_rules
+# build): the game and its art (art.inc, from tools/snes_art.py).
+ifeq ($(strip $(PVSNESLIB_HOME)),)
+$(error "set PVSNESLIB_HOME to your PVSnesLib folder")
+endif
+
+export ROMNAME := raptua
+export ROMTITLE := RAPTUA
+# 512 KB (16 banks of 32 KB): the code, the map's characters and the sprites.
+export ROMSIZE := 09
+export ROMBANKS := 16
+# FastROM: code and data from ROM at 3.58 MHz instead of 2.68 (the 65816 is
+# the bottleneck here).
+export FASTROM := 1
+
+include ${PVSNESLIB_HOME}/devkitsnes/snes_rules
+
+.PHONY: all
+all: $(ROMNAME).sfc
+
+clean: cleanBuildRes cleanRom cleanGfx

@@ -1,0 +1,61 @@
+# The Super Nintendo build and its release: PVSnesLib 4.7.1, Raptua's own
+# wave (tools/snes_art.py, no game content), smoke-tested headless in the
+# snes9x libretro core. The package is the ROM, its README and PVSnesLib's
+# licence; a v* tag also attaches it to the GitHub release. (snes/build.sh
+# --data builds a private ROM from your own Raptor files on your machine.)
+name: snes
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  snes:
+    name: Super Nintendo (PVSnesLib)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Build and smoke-test
+        uses: ./.github/actions/build-snes
+      - name: Package
+        run: |
+          version=$(git describe --tags --always)
+          mkdir -p dist stage/Raptua-SNES
+          cp build-snes/raptua-snes.sfc "stage/Raptua-SNES/raptua-snes-$version.sfc"
+          cp snes/README.md stage/Raptua-SNES/
+          cp .pvsneslib/pvsneslib/pvsneslib/pvsneslib_license.txt stage/Raptua-SNES/PVSNESLIB-LICENSE.txt
+          (cd stage && zip -qr "../dist/raptua-snes-$version.zip" Raptua-SNES)
+          ls -l dist
+      - uses: actions/upload-artifact@v5
+        with:
+          name: raptua-snes
+          path: dist/*.zip
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: raptua-snes-smoke
+          path: build-snes/smoke
+          if-no-files-found: ignore
+
+  publish:
+    name: Attach to the release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [snes]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v6
+        with:
+          name: raptua-snes
+          path: artifacts
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.zip
