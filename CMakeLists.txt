@@ -29,11 +29,25 @@ else()
     set(RAPTUA_XENON OFF)
 endif()
 
+# ---- Wii U -------------------------------------------------------------------
+# -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/WiiU.cmake (devkitPro's wut, which
+# sets WIIU) builds raptua.rpx and the Aroma bundle raptua.wuhb, with
+# devkitPro's Wii U SDL2 (pacman: wiiu-sdl2). See README, "Wii U".
+if(WIIU)
+    set(RAPTUA_TESTS OFF CACHE BOOL "" FORCE)
+endif()
+
 # ---- SDL2 (static) ---------------------------------------------------------
 set(SDL_SHARED OFF CACHE BOOL "" FORCE)
 set(SDL_STATIC ON  CACHE BOOL "" FORCE)
 set(SDL_TEST   OFF CACHE BOOL "" FORCE)
-if(RAPTUA_XENON)
+if(WIIU)
+    # devkitPro's port (ProcUI, GX2 on the TV and GamePad, VPAD/KPAD pads).
+    find_package(SDL2 REQUIRED)
+    if(NOT TARGET SDL2::SDL2-static)
+        add_library(SDL2::SDL2-static ALIAS SDL2::SDL2)
+    endif()
+elseif(RAPTUA_XENON)
     # Only SDL's sources: platform/xenon/sdl2_xenon.cmake builds them with the
     # Xbox 360 drivers.
     FetchContent_Declare(SDL2
@@ -137,6 +151,20 @@ target_link_libraries(raptua PRIVATE raptua_formats raptua_music lua_static SDL2
 if(TARGET SDL2::SDL2main)
     target_link_libraries(raptua PRIVATE SDL2::SDL2main)
 endif()
+if(WIIU)
+    target_compile_definitions(raptua PRIVATE RAPTUA_WIIU=1)
+    wut_create_rpx(raptua)
+    # The Aroma bundle: raptua.rpx, the scripts as its content (/vol/content)
+    # and Raptua's own art (tools/make_wiiu_art.py; no game art).
+    wut_create_wuhb(raptua
+        NAME      "Raptua"
+        SHORTNAME "Raptua"
+        AUTHOR    "Raptua contributors"
+        CONTENT   ${CMAKE_SOURCE_DIR}/scripts
+        ICON      ${CMAKE_SOURCE_DIR}/assets/wiiu/icon.png
+        TVSPLASH  ${CMAKE_SOURCE_DIR}/assets/wiiu/tv_splash.png
+        DRCSPLASH ${CMAKE_SOURCE_DIR}/assets/wiiu/drc_splash.png)
+endif()
 if(RAPTUA_XENON)
     # Paths and controls laid out for the console (src/main.cpp, lua_api.cpp).
     target_compile_definitions(raptua PRIVATE RAPTUA_XENON_LAYOUT=1)
@@ -178,7 +206,7 @@ add_custom_target(raptua_scripts ALL
 add_dependencies(raptua_scripts raptua)
 
 # ---- raptua-glb: list / extract / pack the GLB archives ----------------------
-if(NOT RAPTUA_XENON)
+if(NOT RAPTUA_XENON AND NOT WIIU)
     add_executable(raptua-glb src/tools/glbtool.cpp)
     target_link_libraries(raptua-glb PRIVATE raptua_formats)
     raptua_warnings(raptua-glb)
@@ -207,7 +235,7 @@ if(RAPTUA_TESTS)
     endif()
 endif()
 
-if(NOT RAPTUA_XENON)
+if(NOT RAPTUA_XENON AND NOT WIIU)
     install(TARGETS raptua raptua-glb RUNTIME DESTINATION .)
 endif()
 install(DIRECTORY scripts DESTINATION .)

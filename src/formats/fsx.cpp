@@ -1,6 +1,6 @@
 #include "formats/fsx.h"
 
-#ifndef XENON
+#if !defined(XENON) && !defined(__WIIU__)   // the consoles: dirent
 #include <filesystem>
 #else
 #include <dirent.h>
@@ -15,7 +15,7 @@ std::string join(const std::string& a, const std::string& b) {
     return (last == '/' || last == '\\' || last == ':') ? a + b : a + "/" + b;
 }
 
-#ifndef XENON
+#if !defined(XENON) && !defined(__WIIU__)   // the consoles: dirent
 bool exists(const std::string& path) {
     std::error_code ec;
     return std::filesystem::exists(path, ec);

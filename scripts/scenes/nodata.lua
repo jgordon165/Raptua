@@ -8,6 +8,7 @@ function M.enter()
   local msg = "Raptua needs the data files from your own copy of Raptor: Call of the Shadows v1.2 "
     .. "(FILE0000.GLB and FILE0001.GLB).\n\n"
     .. (rap.platform == "xenon" and "Copy them into the data folder inside the raptua folder on your USB stick.\n\n"
+        or rap.platform == "wiiu" and "Copy them into wiiu/apps/raptua/data on your SD card.\n\n"
         or "Copy them next to raptua, or start it with --data <folder>.\n\n")
     .. rap.data_error()
   io.stderr:write(msg, "\n")

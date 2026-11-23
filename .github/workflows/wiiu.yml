@@ -1,0 +1,68 @@
+# The Wii U build and its release, for the Aroma homebrew environment:
+#   raptua.wuhb   the bundle Aroma shows on the HOME Menu (the game, its
+#                 scripts and Raptua's own icon and splash screens)
+#   raptua.rpx    the bare program, for loaders that want one (it reads its
+#                 scripts from the SD card instead)
+# The package is the SD card layout, wiiu/apps/raptua/, with an empty data/
+# for the player's own FILE0000.GLB and FILE0001.GLB; no game data is
+# shipped. A v* tag also attaches it to the GitHub release.
+name: wiiu
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  wiiu:
+    name: Wii U (wut, Aroma)
+    runs-on: ubuntu-24.04
+    container: devkitpro/devkitppc:latest
+    steps:
+      - name: Wii U SDK and SDL2
+        run: |
+          dkp-pacman -Syu --noconfirm --needed wiiu-dev wiiu-sdl2
+          apt-get update -q
+          DEBIAN_FRONTEND=noninteractive apt-get install -y -q ninja-build git zip
+      - uses: actions/checkout@v5
+      - name: Configure
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          cmake -S . -B build-wiiu -G Ninja -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/WiiU.cmake
+      - name: Build
+        run: cmake --build build-wiiu
+      - name: Package
+        run: |
+          d=pkg/wiiu/apps/raptua
+          mkdir -p $d/data
+          cp build-wiiu/raptua.wuhb build-wiiu/raptua.rpx $d/
+          cp -r scripts $d/scripts                 # for raptua.rpx (the .wuhb carries its own)
+          cp platform/wiiu/README-wiiu.txt $d/README.txt
+          echo "Put FILE0000.GLB and FILE0001.GLB from your own Raptor v1.2 here." > $d/data/PUT-GLB-FILES-HERE.txt
+          (cd pkg && zip -qr ../raptua-wiiu.zip wiiu)
+          unzip -l raptua-wiiu.zip | tail -n +1 | head -20
+      - uses: actions/upload-artifact@v5
+        with:
+          name: raptua-wiiu
+          path: raptua-wiiu.zip
+          if-no-files-found: error
+
+  publish:
+    name: Attach to the release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [wiiu]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v6
+        with:
+          path: artifacts
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.zip
