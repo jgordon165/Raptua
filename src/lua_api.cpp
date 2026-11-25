@@ -459,6 +459,37 @@ int l_held(lua_State* L) { lua_pushboolean(L, E(L)->input.held(luaL_checkstring(
 int l_pressed(lua_State* L) { lua_pushboolean(L, E(L)->input.pressed(luaL_checkstring(L, 1))); return 1; }
 int l_typed(lua_State* L) { lua_pushstring(L, E(L)->input.text.c_str()); return 1; }
 
+// key_down() -> name | nil: the first key pressed this tick (key setup).
+int l_key_down(lua_State* L) {
+    const auto& k = E(L)->input.key_down;
+    if (k.empty()) lua_pushnil(L); else lua_pushstring(L, k.c_str());
+    return 1;
+}
+
+// The Xbox 360 controller's own buttons (Input::pad_*): pad_held(b),
+// pad_pressed(b), pad_button() -> the first pressed this tick or nil,
+// pad_take({b, ...}) (those buttons stop also being keys).
+int l_pad_held(lua_State* L) { lua_pushboolean(L, E(L)->input.pad_held(luaL_checkstring(L, 1))); return 1; }
+int l_pad_pressed(lua_State* L) { lua_pushboolean(L, E(L)->input.pad_pressed(luaL_checkstring(L, 1))); return 1; }
+int l_pad_button(lua_State* L) {
+    std::string b = E(L)->input.pad_first();
+    if (b.empty()) lua_pushnil(L); else lua_pushstring(L, b.c_str());
+    return 1;
+}
+int l_pad_take(lua_State* L) {
+    std::vector<std::string> list;
+    if (lua_istable(L, 1)) {
+        lua_Integer n = luaL_len(L, 1);
+        for (lua_Integer i = 1; i <= n; ++i) {
+            lua_geti(L, 1, i);
+            if (lua_isstring(L, -1)) list.emplace_back(lua_tostring(L, -1));
+            lua_pop(L, 1);
+        }
+    }
+    E(L)->input.pad_take(list);
+    return 0;
+}
+
 int l_mouse(lua_State* L) {   // -> x, y, dx, dy, moved
     auto& in = E(L)->input;
     lua_pushinteger(L, in.mouse_x); lua_pushinteger(L, in.mouse_y);
@@ -550,7 +581,8 @@ void register_lua_api(lua_State* L, Engine* e) {
         {"sound", l_sound}, {"play", l_play}, {"sound_playing", l_sound_playing}, {"volume", l_volume}, {"stop_sounds", l_stop_sounds},
         {"music", l_music}, {"music_stop", l_music_stop}, {"music_volume", l_music_volume},
         {"music_playing", l_music_playing},
-        {"held", l_held}, {"pressed", l_pressed}, {"typed", l_typed},
+        {"held", l_held}, {"pressed", l_pressed}, {"typed", l_typed}, {"key_down", l_key_down},
+        {"pad_held", l_pad_held}, {"pad_pressed", l_pad_pressed}, {"pad_button", l_pad_button}, {"pad_take", l_pad_take},
         {"mouse", l_mouse}, {"grab_mouse", l_grab_mouse},
         {"tick_rate", l_tick_rate}, {"quit", l_quit}, {"can_exit", l_can_exit}, {"fullscreen", l_fullscreen},
         {"headless", l_headless}, {"millis", l_millis}, {"message", l_message}, {"screenshot", l_screenshot},

@@ -46,6 +46,20 @@ function M:field(name)
 end
 
 function M:set_text(name, text) self.texts[name] = text end
+
+-- A button of the port's own (not in the window's data), styled like the
+-- window's button `like`: added to the fields and the focus order.
+function M:add_button(name, label, x, y, w, h, like)
+  local f = { type = T_BUTTON, name = name, text = label, x = x, y = y, w = w, h = h, item = "",
+              font = "FONT2_FNT", base = 0, fill = 0, color = 0, lite = 0, shadow = 0, selectable = 1, id = -1, hotkey = 0, max = 0 }
+  for _, g in ipairs(self.def.fields) do
+    if g.name == like then
+      for _, k in ipairs({ "font", "base", "fill", "color", "lite", "shadow", "item" }) do f[k] = g[k] end
+    end
+  end
+  self.def.fields[#self.def.fields + 1] = f
+  self.focus[#self.focus + 1] = #self.def.fields
+end
 function M:text(name)
   local f = self:field(name)
   return self.texts[name] or (f and f.text) or ""

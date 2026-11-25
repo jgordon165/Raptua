@@ -30,6 +30,53 @@ static int key_down[K_COUNT];
 #define STICK 16000
 #define TRIGGER 60
 
+/* The buttons themselves, for the game's controller setup (Options >
+ * CONTROLLER) and its on-screen keyboard: XENON_PadButtons() gives the
+ * XP_BTN_ bits held on any pad, and XENON_SetPadKeyMask() stops the buttons
+ * in a mask from also being keys (a mission takes its bound buttons for
+ * itself, so Y as fire doesn't also drop a megabomb as Shift). As in
+ * Meguarace. */
+static unsigned pad_buttons, pad_key_mask;
+unsigned XENON_PadButtons(void) { return pad_buttons; }
+void XENON_SetPadKeyMask(unsigned mask) { pad_key_mask = mask; }
+
+static unsigned pad_bits(const xp_pad *p)
+{
+    unsigned b = 0;
+    if (p->a) b |= XP_BTN_A;
+    if (p->b) b |= XP_BTN_B;
+    if (p->x) b |= XP_BTN_X;
+    if (p->y) b |= XP_BTN_Y;
+    if (p->lb) b |= XP_BTN_LB;
+    if (p->rb) b |= XP_BTN_RB;
+    if (p->lt > TRIGGER) b |= XP_BTN_LT;
+    if (p->rt > TRIGGER) b |= XP_BTN_RT;
+    if (p->ls) b |= XP_BTN_LS;
+    if (p->rs) b |= XP_BTN_RS;
+    if (p->start) b |= XP_BTN_START;
+    if (p->back) b |= XP_BTN_BACK;
+    if (p->up || p->ly > STICK) b |= XP_BTN_UP;
+    if (p->down || p->ly < -STICK) b |= XP_BTN_DOWN;
+    if (p->left || p->lx < -STICK) b |= XP_BTN_LEFT;
+    if (p->right || p->lx > STICK) b |= XP_BTN_RIGHT;
+    return b;
+}
+
+/* A pad with the masked buttons let go (they stay buttons, not keys). */
+static void unmask(xp_pad *p, unsigned m)
+{
+    if (m & XP_BTN_A) p->a = 0;
+    if (m & XP_BTN_B) p->b = 0;
+    if (m & XP_BTN_X) p->x = 0;
+    if (m & XP_BTN_Y) p->y = 0;
+    if (m & XP_BTN_LB) p->lb = 0;
+    if (m & XP_BTN_RB) p->rb = 0;
+    if (m & XP_BTN_LT) p->lt = 0;
+    if (m & XP_BTN_RT) p->rt = 0;
+    if (m & XP_BTN_LS) p->ls = 0;
+    if (m & XP_BTN_RS) p->rs = 0;
+}
+
 static void key_map(const xp_pad *p, int *k)
 {
     k[K_UP] |= p->up || p->ly > STICK;
@@ -48,14 +95,19 @@ static void key_map(const xp_pad *p, int *k)
 static void XENON_PumpEvents(_THIS)
 {
     int now[K_COUNT] = { 0 };
+    unsigned buttons = 0;
     int port, i;
     (void)_this;
     xp_poll();
     for (port = 0; port < 4; ++port) {
         xp_pad p;
         xp_get_pad(port, &p);
-        if (p.connected) key_map(&p, now);
+        if (!p.connected) continue;
+        buttons |= pad_bits(&p);
+        unmask(&p, pad_key_mask);
+        key_map(&p, now);
     }
+    pad_buttons = buttons;
     for (i = 0; i < K_COUNT; ++i) {
         if (now[i] != key_down[i]) {
             key_down[i] = now[i];

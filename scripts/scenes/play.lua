@@ -21,6 +21,7 @@ local pilot = require("game.pilot")
 local M = {}
 
 function M.enter(arg)
+  util.take_pad(true)   -- the 360's bound buttons are the controls only (game/controls.lua)
   arg = arg or {}
   M.sector = arg.sector or 1
   M.map = arg.map or 1
@@ -58,7 +59,7 @@ function M.enter(arg)
   rap.grab_mouse(not rap.headless())
 end
 
-function M.leave() rap.grab_mouse(false); rap.fade(1) end
+function M.leave() rap.grab_mouse(false); rap.fade(1); util.take_pad(false) end
 
 -- Called by the main menu's RETURN: back to the wave where it was.
 function M.resumed()

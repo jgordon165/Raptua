@@ -26,21 +26,32 @@ function M.options()
   local w = swd.open("OPTS_SWD")
   if not w then return nil end
   for _, n in ipairs({ "PIC1", "PIC2", "PIC3" }) do w:hide(n) end
+  -- The port's own: the controls (KEYBOARD on a PC, CONTROLLER on the Xbox
+  -- 360) beside EXIT, in the space the original leaves there.
+  local controls = require("game.controls")
+  w:add_button("CONTROLS", controls.kind() == "pad" and "CONTROLLER" or "KEYBOARD", 7, 136, 98, 12, "EXIT")
   local function detail_label() w:set_text("DETAIL", settings.detail and "HIGH DETAIL" or "LOW DETAIL") end
   detail_label()
   w.values.VMUSIC, w.values.VFX = settings.music, settings.sound
   w:focus_area("VMUSIC"); w:focus_area("VFX")
-  local d = simple(w, function(r)
+  local d
+  d = simple(w, function(r)
     if r == "DETAIL" then
       settings.detail = not settings.detail
       detail_label()
       settings.save()
+    elseif r == "CONTROLS" then
+      d.sub = M.controls()
     elseif r == "EXIT" or r == "cancel" then
       return true
     end
   end)
-  local base_update = d.update
+  local base_update, base_draw = d.update, d.draw
   d.update = function(self)
+    if self.sub then
+      if self.sub:update() then self.sub = nil end
+      return false
+    end
     local done = base_update(self)
     if w.changed then
       settings.music = math.floor(w.values.VMUSIC or settings.music)
@@ -51,6 +62,85 @@ function M.options()
     end
     return done
   end
+  d.draw = function(self)
+    base_draw(self)
+    if self.sub then self.sub:draw() end
+  end
+  return d
+end
+
+-- Options > KEYBOARD / CONTROLLER (the port's own; game/controls.lua): asks
+-- for a key (or a controller button) for each control in turn. On the last
+-- row any key or button keeps them; Escape (BACK on the 360) at any point
+-- puts the old ones back. A key or button already given to an earlier row
+-- is refused.
+function M.controls()
+  local controls = require("game.controls")
+  local kind = controls.kind()
+  local cur = controls.of(settings, kind)
+  local acts = controls.actions(kind)
+  local d = { row = 1, new = {}, t = 0 }
+  local W, RH = 200, 11
+  local H = (#acts + 4) * RH + 8
+  local X, Y = (320 - W) // 2, (200 - H) // 2
+
+  local function taken(v)
+    for i = 1, d.row - 1 do if d.new[acts[i]] == v then return true end end
+    return false
+  end
+
+  function d:update()
+    self.t = self.t + 1
+    if self.t < 6 then return false end            -- the press that opened this
+    local v
+    if kind == "pad" then
+      v = rap.pad_button()
+      if v == "BACK" then return true end          -- the old buttons stay
+    else
+      v = rap.key_down()
+      if v == "Escape" then return true end
+    end
+    if not v then return false end
+    if self.row > #acts then                       -- the last row: keep them
+      for a, b in pairs(self.new) do cur[a] = b end
+      settings.save()
+      return true
+    end
+    local ok = kind == "pad" and controls.accepts_button(v) or (kind ~= "pad" and controls.accepts_key(v))
+    if ok and not taken(v) then
+      self.new[acts[self.row]] = v
+      self.row = self.row + 1
+    end
+    return false
+  end
+
+  function d:draw()
+    rap.shade(X, Y, W, H, -3)
+    rap.shade(X, Y, W, 1, 2); rap.shade(X, Y + H - 1, W, 1, 2)
+    rap.shade(X, Y, 1, H, 2); rap.shade(X + W - 1, Y, 1, H, 2)
+    local title = kind == "pad" and "CONTROLLER" or "KEYBOARD"
+    local tw = rap.text_size("FONT2_FNT", title)
+    rap.text("FONT2_FNT", title, X + (W - tw) // 2, Y + 4, -1)
+    for i, a in ipairs(acts) do
+      local y = Y + 4 + (i + 1) * RH
+      local v = self.new[a] or (i >= self.row and cur[a]) or nil
+      if i == self.row then rap.shade(X + 4, y - 2, W - 8, RH, 1) end
+      rap.text("FONT2_FNT", controls.LABELS[a], X + 10, y, -1)
+      local shown = i < self.row and controls.display(self.new[a]) or (i == self.row and ((self.t // 16) % 2 == 0 and "..." or "")) or controls.display(v)
+      rap.text("FONT2_FNT", shown, X + 110, y, -1)
+    end
+    local last = Y + 4 + (#acts + 2) * RH
+    local hint
+    if self.row > #acts then
+      rap.shade(X + 4, last - 2, W - 8, RH, 1)
+      hint = kind == "pad" and "ANY BUTTON KEEPS, BACK UNDOES" or "ANY KEY KEEPS, ESC UNDOES"
+    else
+      hint = kind == "pad" and "PRESS A BUTTON  (BACK UNDOES)" or "PRESS A KEY  (ESC UNDOES)"
+    end
+    local hw = rap.text_size("FONT2_FNT", hint)
+    rap.text("FONT2_FNT", hint, X + (W - hw) // 2, last, -1)
+  end
+
   return d
 end
 

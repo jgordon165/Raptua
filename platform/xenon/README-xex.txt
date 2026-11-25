@@ -54,3 +54,14 @@ If something goes wrong
 If the data files aren't found, the screen says so and shows the folder it
 looked in. A script error is shown on screen too (START exits). Both, and the
 folders used, are written to raptua.log next to raptua.xex.
+
+Controller setup and typing names
+---------------------------------
+Options > CONTROLLER sets which buttons fire, change the special weapon and
+drop a megabomb (A, B, X, Y, LB, RB, LT, RT or the sticks pressed in):
+press a button for each in turn, then any button to keep them, or BACK to
+put the old ones back. The stick and D-pad always fly; START is the menu.
+
+On the new pilot screen, press A on the name or callsign box for the
+on-screen keyboard: the D-pad moves, A types, B rubs out, X is a space and
+START is done.

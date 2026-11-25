@@ -60,6 +60,10 @@ Copy the `raptua` folder to a FAT32 USB stick (or the hard drive), then put `FIL
 
 To build: `cmake -DCMAKE_TOOLCHAIN_FILE=platform/xenon/toolchain.cmake` (LibXenon, in the `free60/libxenon` image) or `-DCMAKE_TOOLCHAIN_FILE=<xsdk>/cmake/xsdk.cmake`. `-DRAPTUA_XENON_SIM=ON` builds the same SDL and layout on a PC for testing (`XENON_SIM_*` variables in `platform/xenon/xenon_platform_sim.c`). The platform layer is shared with Meguarace.
 
+## Controls
+
+Options has a **KEYBOARD** button on a PC: press a key for up, down, left, right, fire, next special and megabomb in turn (Esc undoes). On the Xbox 360 it's **CONTROLLER** instead, for the fire, special and megabomb buttons; the stick and D-pad always fly. The bindings are saved with the settings (`game/controls.lua`). On the Xbox 360 and the Wii U, the new pilot's name and callsign are typed on an on-screen keyboard (`ui/osk.lua`): A on the box opens it.
+
 ## Building
 
 You need CMake 3.20+ and a C++20 compiler. CMake downloads SDL2, Lua and ymfm (the OPL3 emulator, BSD-3) itself.

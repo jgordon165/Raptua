@@ -6,10 +6,13 @@ local swd = require("ui.swd")
 local dialogs = require("ui.dialogs")
 local pilot = require("game.pilot")
 local music = require("game.music")
+local osk = require("ui.osk")
+local util = require("core.util")
 
 local M = {}
 
-local HINTS = { NAME = "TYPE YOUR NAME", CALLSIGN = "TYPE YOUR CALLSIGN", VIEWID = "CHANGE PHOTO",
+local HINTS = { NAME = osk.active() and "A: TYPE YOUR NAME" or "TYPE YOUR NAME",
+                CALLSIGN = osk.active() and "A: TYPE YOUR CALLSIGN" or "TYPE YOUR CALLSIGN", VIEWID = "CHANGE PHOTO",
                 VIEWREG = "SIGN IN", VIEWEXIT = "BACK TO MAIN MENU" }
 
 function M.enter()
@@ -52,6 +55,12 @@ function M.update()
   local top = M.stack[#M.stack]
   if top then if top:update() then table.remove(M.stack) end; return end
   if not M.win then scenes.switch(require("scenes.mainmenu")); return end
+  -- A controller: A on the name or callsign box opens the on-screen keyboard.
+  local f0 = M.win:selected()
+  if osk.active() and f0 and (f0.name == "NAME" or f0.name == "CALLSIGN") and util.pressed("ok") then
+    M.stack[#M.stack + 1] = osk.new(M.win, f0.name, f0.max > 0 and f0.max or 12)
+    return
+  end
   local r = M.win:update()
   local f = M.win:selected()
   M.win:set_text("TEXT", f and HINTS[f.name] or "")

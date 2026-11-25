@@ -66,6 +66,23 @@ function selftest()
   assert(pl.money == ship.money and pl.items[7] == 1 and pl.special == 7)
   for _ = 1, pilot.WAVES do pilot.wave_done(pl, 1) end
   assert(pilot.sector_done(pl, 1) and not pilot.sector_done(pl, 2))
+  -- Controls (game/controls.lua) and the on-screen keyboard (ui/osk.lua).
+  local controls = require("game.controls")
+  local st = { keys = { fire = "Escape", up = "W" }, pad = { fire = "START", bomb = "LB" } }
+  local kb, pd = controls.of(st, "keys"), controls.of(st, "pad")
+  assert(kb.fire == "Left Ctrl" and kb.up == "W" and kb.special == "Left Alt")   -- Escape can't be bound
+  assert(pd.fire == "A" and pd.bomb == "LB" and pd.special == "B")              -- nor START
+  assert(not controls.accepts_key("F1") and controls.accepts_key("Space") and not controls.accepts_button("BACK"))
+  local used = controls.used(pd)
+  assert(#used == 3)
+  local osk = require("ui.osk")
+  local rows = osk.layout(osk.LETTERS)
+  assert(#rows == 5 and rows[5][1] == "SPACE" and rows[5][3] == "DONE")
+  local k = { rows = rows, row = 1, col = 1, max = 3 }
+  osk.move(k, 0, -1); assert(k.col == 10)
+  osk.move(k, 4, 0); assert(k.row == 5 and k.col == 3)
+  assert(osk.press(k, "", "SPACE") == "" and osk.press(k, "AB", "C") == "ABC" and osk.press(k, "ABC", "D") == "ABC")
+  assert(osk.press(k, "AB", "DEL") == "A" and select(2, osk.press(k, "AB", "DONE")) == "done")
   -- An original CHARnnnn.FIL pilot: build one, encipher it, read it back.
   local orig = require("game.original_pilot")
   local head = string.pack("<c20c12i4I4i4i4i4i4i4i4i4i4i4i4i4i4", ("BOB" .. ("\0"):rep(17)), ("RED" .. ("\0"):rep(9)),

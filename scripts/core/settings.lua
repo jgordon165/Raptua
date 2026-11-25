@@ -6,7 +6,8 @@
 -- The original waits for at least 3 (23.3 fps, its ceiling on a fast PC);
 -- on slower PCs a frame took 4 or 5 (17.5 / 14 fps) and the whole game ran
 -- slower, as nothing scales movement by frame time.
-local M = { music = 90, sound = 100, detail = true, cadence = 4 }
+local M = { music = 90, sound = 100, detail = true, cadence = 4,
+            keys = {}, pad = {} }   -- bindings: game/controls.lua
 M.CADENCES = { 3, 4, 5 }
 
 local FILE = "settings.lua"
@@ -36,9 +37,21 @@ function M.load()
   M.apply()
 end
 
+-- A table of string bindings as Lua source.
+local function binds(t)
+  local names = {}
+  for k in pairs(t) do names[#names + 1] = k end
+  table.sort(names)
+  local out = {}
+  for _, k in ipairs(names) do
+    if type(t[k]) == "string" then out[#out + 1] = ("%s = %q"):format(k, t[k]) end
+  end
+  return "{ " .. table.concat(out, ", ") .. " }"
+end
+
 function M.save()
-  rap.save_file(FILE, ("return { version = 2, music = %d, sound = %d, detail = %s, cadence = %d }\n")
-    :format(M.music, M.sound, tostring(M.detail), M.cadence))
+  rap.save_file(FILE, ("return { version = 2, music = %d, sound = %d, detail = %s, cadence = %d,\n  keys = %s,\n  pad = %s }\n")
+    :format(M.music, M.sound, tostring(M.detail), M.cadence, binds(M.keys), binds(M.pad)))
 end
 
 -- Cycle the game speed through 3/4/5 retraces per frame and save.

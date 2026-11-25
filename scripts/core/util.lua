@@ -37,14 +37,25 @@ function M.frames(name)
   return out
 end
 
--- Shared key bindings: keyboard, game pad.
+-- Shared bindings: the keyboard's from Options > KEYBOARD (game/controls.lua),
+-- the mouse's and a PC game controller's fixed; on the Xbox 360 the
+-- controller's fire, special and megabomb from Options > CONTROLLER (its
+-- stick and D-pad arrive as the arrow keys).
+local controls = require("game.controls")
+local settings = require("core.settings")
+local XENON = rap.platform == "xenon"
+
+local function key(action) return controls.of(settings, "keys")[action] end
+local function button(action) return controls.of(settings, "pad")[action] end
+
 function M.held(action)
-  if action == "left" then return rap.held("Left") or rap.held("pad_dpleft") or rap.held("pad_stick_left") end
-  if action == "right" then return rap.held("Right") or rap.held("pad_dpright") or rap.held("pad_stick_right") end
-  if action == "up" then return rap.held("Up") or rap.held("pad_dpup") or rap.held("pad_stick_up") end
-  if action == "down" then return rap.held("Down") or rap.held("pad_dpdown") or rap.held("pad_stick_down") end
-  if action == "fire" then return rap.held("Left Ctrl") or rap.held("Space") or rap.held("mouse_left") or rap.held("pad_a") or rap.held("pad_trigger_right") end
-  if action == "special" then return rap.held("Left Alt") or rap.held("mouse_right") or rap.held("pad_b") end
+  if action == "left" then return rap.held(key("left")) or rap.held("pad_dpleft") or rap.held("pad_stick_left") end
+  if action == "right" then return rap.held(key("right")) or rap.held("pad_dpright") or rap.held("pad_stick_right") end
+  if action == "up" then return rap.held(key("up")) or rap.held("pad_dpup") or rap.held("pad_stick_up") end
+  if action == "down" then return rap.held(key("down")) or rap.held("pad_dpdown") or rap.held("pad_stick_down") end
+  if XENON and (action == "fire" or action == "special") then return rap.pad_held(button(action)) end
+  if action == "fire" then return rap.held(key("fire")) or rap.held("mouse_left") or rap.held("pad_a") or rap.held("pad_trigger_right") end
+  if action == "special" then return rap.held(key("special")) or rap.held("mouse_right") or rap.held("pad_b") end
   return false
 end
 
@@ -53,9 +64,16 @@ function M.pressed(action)
   if action == "back" then return rap.pressed("Escape") or rap.pressed("pad_back") or rap.pressed("pad_b") end
   if action == "up" then return rap.pressed("repeat_Up") or rap.pressed("pad_dpup") end
   if action == "down" then return rap.pressed("repeat_Down") or rap.pressed("pad_dpdown") end
-  if action == "special" then return rap.pressed("Left Alt") or rap.pressed("mouse_right") or rap.pressed("pad_b") end
-  if action == "bomb" then return rap.pressed("Left Shift") or rap.pressed("mouse_middle") or rap.pressed("pad_y") end
+  if XENON and (action == "special" or action == "bomb") then return rap.pad_pressed(button(action)) end
+  if action == "special" then return rap.pressed(key("special")) or rap.pressed("mouse_right") or rap.pressed("pad_b") end
+  if action == "bomb" then return rap.pressed(key("bomb")) or rap.pressed("mouse_middle") or rap.pressed("pad_y") end
   return false
+end
+
+-- In a mission (scenes/play.lua): the 360's bound buttons stop also being
+-- the keys they stand for in menus. take(false) gives them back.
+function M.take_pad(on)
+  if XENON then rap.pad_take(on and controls.used(controls.of(settings, "pad")) or {}) end
 end
 
 return M
