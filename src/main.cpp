@@ -237,6 +237,7 @@ int main(int argc, char** argv) {
             }
             eng->input.event(ev);
         }
+        eng->input.poll_pad();
         int mx, my;
         SDL_GetMouseState(&mx, &my);
         eng->window.to_screen(mx, my, eng->input.mouse_x, eng->input.mouse_y);
