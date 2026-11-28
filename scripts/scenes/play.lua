@@ -1,6 +1,7 @@
 -- One mission: scrolling map, player, enemies, HUD.
 local scenes = require("core.scenes")
 local util = require("core.util")
+local smooth = require("game.smooth")
 local Level = require("game.level")
 local Player = require("game.player")
 local Shots = require("game.shots")
@@ -107,6 +108,7 @@ function M.update()
       return best
     end
   end
+  pl._px, pl._py = pl.x, pl.y     -- for smooth motion: the ship moves every tick
   pl:update()
   -- Edge-triggered controls are read every tick so presses aren't lost.
   if not pl.dead and util.pressed("special") then
@@ -124,6 +126,7 @@ function M.update()
   M.tick = M.tick + 1
   if M.tick % settings.cadence == 0 then
     -- ---- one game frame -------------------------------------------------
+    if settings.smooth then smooth.mark(M.moving()); lv._pcam = lv.cam end
     local before = lv.cam
     lv:update()                                   -- 1 pixel per frame
     local scroll = before - lv.cam
@@ -246,8 +249,42 @@ local function hud()
   M.bonus:draw_message(M.font)
 end
 
+-- What moves on game frames (smooth motion places these between frames).
+function M.moving()
+  local w = M.weapons
+  return { M.enemies.list, M.shots.player, M.shots.enemy, M.shots.fx, M.bonus.list,
+           w.shots or {}, w.puffs or {}, w.smoke or {} }
+end
+
 function M.draw()
   if not M.level then return end
+  -- Smooth motion: draw everything part-way from the last game frame to
+  -- this one (game/smooth.lua); the game state is put back afterwards.
+  local lists, cam, sx, sy
+  if settings.smooth and not M.pause then
+    local a = smooth.fraction(M.tick, settings.cadence, rap.alpha())
+    lists = M.moving()
+    smooth.place(lists, a)
+    cam = M.level.cam
+    if M.level._pcam and math.abs(cam - M.level._pcam) <= smooth.JUMP then
+      M.level.cam = M.level._pcam + (cam - M.level._pcam) * a
+    end
+    local pl = M.player
+    sx, sy = pl.x, pl.y
+    if pl._px and math.abs(pl.x - pl._px) <= smooth.JUMP and math.abs(pl.y - pl._py) <= smooth.JUMP then
+      local t = rap.alpha()
+      pl.x, pl.y = pl._px + (pl.x - pl._px) * t, pl._py + (pl.y - pl._py) * t
+    end
+  end
+  M.draw_scene()
+  if lists then
+    smooth.restore(lists)
+    M.level.cam = cam
+    M.player.x, M.player.y = sx, sy
+  end
+end
+
+function M.draw_scene()
   rap.clear(0)
   M.level:draw()
   rap.clip(Level.X0, 0, 288, rap.H)

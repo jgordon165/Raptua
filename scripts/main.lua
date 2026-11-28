@@ -66,6 +66,15 @@ function selftest()
   assert(pl.money == ship.money and pl.items[7] == 1 and pl.special == 7)
   for _ = 1, pilot.WAVES do pilot.wave_done(pl, 1) end
   assert(pilot.sector_done(pl, 1) and not pilot.sector_done(pl, 2))
+  -- Smooth motion (game/smooth.lua): drawn part-way, then put back exactly.
+  local smooth = require("game.smooth")
+  local objs = { { x = 10, y = 20 }, { x = 0, y = 0 } }
+  smooth.mark({ objs }); objs[1].x, objs[1].y = 18, 24; objs[2].x = 200
+  smooth.place({ objs }, 0.5)
+  assert(objs[1].x == 14 and objs[1].y == 22 and objs[2].x == 200)   -- a jump is drawn where it is
+  smooth.restore({ objs })
+  assert(objs[1].x == 18 and objs[1].y == 24 and objs[1]._cx == nil)
+  assert(smooth.fraction(8, 4, 0) == 0 and smooth.fraction(9, 4, 0.5) == 0.375 and smooth.fraction(11, 4, 1) == 1)
   -- Controls (game/controls.lua) and the on-screen keyboard (ui/osk.lua).
   local controls = require("game.controls")
   local st = { keys = { fire = "Escape", up = "W" }, pad = { fire = "START", bomb = "LB" } }

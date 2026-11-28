@@ -55,9 +55,15 @@ If the data files aren't found, the screen says so and shows the folder it
 looked in. A script error is shown on screen too (START exits). Both, and the
 folders used, are written to raptua.log next to raptua.xex.
 
-Controller setup and typing names
----------------------------------
-Options > CONTROLLER sets which buttons fire, change the special weapon and
+Smooth motion and controller setup
+----------------------------------
+Options > ADVANCED > SMOOTH MOTION draws 60 frames a second: the map,
+enemies and shots glide between the game's own frames (about 17 to 23 a
+second, as in the original). Where enemies go, how fast and when they fire
+doesn't change; only the in-between pictures are new, a fraction of a frame
+behind. Off by default. GAME SPEED is there too.
+
+Options > ADVANCED > CONTROLLER SETUP sets which buttons fire, change the special weapon and
 drop a megabomb (A, B, X, Y, LB, RB, LT, RT or the sticks pressed in):
 press a button for each in turn, then any button to keep them, or BACK to
 put the old ones back. The stick and D-pad always fly; START is the menu.

@@ -60,9 +60,17 @@ Copy the `raptua` folder to a FAT32 USB stick (or the hard drive), then put `FIL
 
 To build: `cmake -DCMAKE_TOOLCHAIN_FILE=platform/xenon/toolchain.cmake` (LibXenon, in the `free60/libxenon` image) or `-DCMAKE_TOOLCHAIN_FILE=<xsdk>/cmake/xsdk.cmake`. `-DRAPTUA_XENON_SIM=ON` builds the same SDL and layout on a PC for testing (`XENON_SIM_*` variables in `platform/xenon/xenon_platform_sim.c`). The platform layer is shared with Meguarace.
 
+## Advanced options
+
+Options has an **ADVANCED** button of Raptua's own:
+
+- **Smooth motion:** every displayed frame is drawn (60 a second on the Xbox 360), with the map, enemies, shots and pickups placed between the game's own frames (`game/smooth.lua`). The game itself is unchanged: enemies move, fire and get hit only on the original's game frames, by the same amounts. The in-between pictures trail by up to one game frame. Off by default.
+- **Game speed:** the original's 3, 4 or 5 vertical blanks per game frame (also F5 on the main menu).
+- **Keyboard / controller setup:** see Controls.
+
 ## Controls
 
-Options has a **KEYBOARD** button on a PC: press a key for up, down, left, right, fire, next special and megabomb in turn (Esc undoes). On the Xbox 360 it's **CONTROLLER** instead, for the fire, special and megabomb buttons; the stick and D-pad always fly. The bindings are saved with the settings (`game/controls.lua`). On the Xbox 360 and the Wii U, the new pilot's name and callsign are typed on an on-screen keyboard (`ui/osk.lua`): A on the box opens it.
+Options > ADVANCED has a **KEYBOARD** setup on a PC: press a key for up, down, left, right, fire, next special and megabomb in turn (Esc undoes). On the Xbox 360 it's **CONTROLLER** instead, for the fire, special and megabomb buttons; the stick and D-pad always fly. The bindings are saved with the settings (`game/controls.lua`). On the Xbox 360 and the Wii U, the new pilot's name and callsign are typed on an on-screen keyboard (`ui/osk.lua`): A on the box opens it.
 
 ## Building
 

@@ -7,6 +7,7 @@
 -- question in a yes/no box, a message), Raptua writes its own short text.
 local swd = require("ui.swd")
 local settings = require("core.settings")
+local util = require("core.util")
 
 local M = {}
 
@@ -26,10 +27,9 @@ function M.options()
   local w = swd.open("OPTS_SWD")
   if not w then return nil end
   for _, n in ipairs({ "PIC1", "PIC2", "PIC3" }) do w:hide(n) end
-  -- The port's own: the controls (KEYBOARD on a PC, CONTROLLER on the Xbox
-  -- 360) beside EXIT, in the space the original leaves there.
-  local controls = require("game.controls")
-  w:add_button("CONTROLS", controls.kind() == "pad" and "CONTROLLER" or "KEYBOARD", 7, 136, 98, 12, "EXIT")
+  -- The port's own: ADVANCED (smooth motion, game speed, the keyboard or
+  -- controller setup) beside EXIT, in the space the original leaves there.
+  w:add_button("ADVANCED", "ADVANCED", 7, 136, 98, 12, "EXIT")
   local function detail_label() w:set_text("DETAIL", settings.detail and "HIGH DETAIL" or "LOW DETAIL") end
   detail_label()
   w.values.VMUSIC, w.values.VFX = settings.music, settings.sound
@@ -40,8 +40,8 @@ function M.options()
       settings.detail = not settings.detail
       detail_label()
       settings.save()
-    elseif r == "CONTROLS" then
-      d.sub = M.controls()
+    elseif r == "ADVANCED" then
+      d.sub = M.advanced()
     elseif r == "EXIT" or r == "cancel" then
       return true
     end
@@ -69,7 +69,91 @@ function M.options()
   return d
 end
 
--- Options > KEYBOARD / CONTROLLER (the port's own; game/controls.lua): asks
+-- Options > ADVANCED (the port's own, as in Meguarace): settings the
+-- original doesn't have.
+--   SMOOTH MOTION  draw every displayed frame (60 on the Xbox 360), moving
+--                  things placed between game frames (game/smooth.lua); the
+--                  game itself is unchanged
+--   GAME SPEED     game frames a second (the original's 3, 4 or 5 vertical
+--                  blanks per frame; also F5 on the main menu)
+--   KEYBOARD / CONTROLLER  the key or button setup
+-- Up and down pick a row; A / Enter (or left and right) changes it; B / Esc
+-- or DONE closes.
+function M.advanced()
+  local controls = require("game.controls")
+  local XENON = rap.platform == "xenon"
+  local rows = { "smooth", "speed", "controls", "done" }
+  local d = { row = 1, t = 0 }
+  local W, RH = 236, 13
+  local H = (#rows + 2) * RH + 10
+  local X, Y = (320 - W) // 2, (200 - H) // 2
+
+  local function label(r)
+    if r == "smooth" then return "SMOOTH MOTION", settings.smooth and "ON (60 FPS)" or "OFF" end
+    if r == "speed" then return settings.cadence_label(), "" end
+    if r == "controls" then return controls.kind() == "pad" and "CONTROLLER SETUP" or "KEYBOARD SETUP", "" end
+    return "DONE", ""
+  end
+
+  local function back()
+    return util.pressed("back") or (XENON and rap.pad_pressed("B"))
+  end
+
+  local function change(r, dir)
+    if r == "smooth" then
+      settings.smooth = not settings.smooth
+      settings.apply(); settings.save()
+    elseif r == "speed" then
+      settings.cycle_cadence(dir)
+    elseif r == "controls" then
+      d.sub = M.controls()
+    else
+      return true
+    end
+  end
+
+  function d:update()
+    self.t = self.t + 1
+    if self.sub then
+      if self.sub:update() then self.sub = nil; self.t = 0 end
+      return false
+    end
+    if self.t < 6 then return false end            -- the press that opened this
+    if back() then return true end
+    if util.pressed("up") then self.row = (self.row - 2) % #rows + 1 end
+    if util.pressed("down") then self.row = self.row % #rows + 1 end
+    local r = rows[self.row]
+    if rap.pressed("repeat_Left") or rap.pressed("pad_dpleft") then if r ~= "controls" and r ~= "done" then change(r, -1) end end
+    if rap.pressed("repeat_Right") or rap.pressed("pad_dpright") then if r ~= "controls" and r ~= "done" then change(r, 1) end end
+    if util.pressed("ok") or rap.pressed("mouse_left") then
+      if change(r, 1) then return true end
+    end
+    return false
+  end
+
+  function d:draw()
+    rap.shade(X, Y, W, H, -3); rap.shade(X, Y, W, H, -3)   -- twice: the menu behind stays out of the way
+    rap.shade(X, Y, W, 1, 2); rap.shade(X, Y + H - 1, W, 1, 2)
+    rap.shade(X, Y, 1, H, 2); rap.shade(X + W - 1, Y, 1, H, 2)
+    local tw = rap.text_size("FONT2_FNT", "ADVANCED")
+    rap.text("FONT2_FNT", "ADVANCED", X + (W - tw) // 2, Y + 5, -1)
+    for i, r in ipairs(rows) do
+      local y = Y + 6 + i * RH + 2
+      if i == self.row then rap.shade(X + 4, y - 2, W - 8, RH - 1, 1) end
+      local name, value = label(r)
+      rap.text("FONT2_FNT", name, X + 10, y, -1)
+      if value ~= "" then
+        local vw = rap.text_size("FONT2_FNT", value)
+        rap.text("FONT2_FNT", value, X + W - 10 - vw, y, -1)
+      end
+    end
+    if self.sub then self.sub:draw() end
+  end
+
+  return d
+end
+
+-- The key or controller setup (the port's own; game/controls.lua): asks
 -- for a key (or a controller button) for each control in turn. On the last
 -- row any key or button keeps them; Escape (BACK on the 360) at any point
 -- puts the old ones back. A key or button already given to an earlier row
@@ -115,7 +199,7 @@ function M.controls()
   end
 
   function d:draw()
-    rap.shade(X, Y, W, H, -3)
+    rap.shade(X, Y, W, H, -3); rap.shade(X, Y, W, H, -3)   -- twice: the menu behind stays out of the way
     rap.shade(X, Y, W, 1, 2); rap.shade(X, Y + H - 1, W, 1, 2)
     rap.shade(X, Y, 1, H, 2); rap.shade(X + W - 1, Y, 1, H, 2)
     local title = kind == "pad" and "CONTROLLER" or "KEYBOARD"
