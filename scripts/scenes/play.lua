@@ -47,11 +47,20 @@ function M.enter(arg)
   -- specials and megabombs) and the pilot's money; each ship has its own
   -- shield and its own guns. Player shots only ever hit enemies, so the
   -- ships can't hurt each other, and they are kept from overlapping.
-  if settings.coop and not M.demo then
+  -- A pilot flies two ships if its campaign was started for two players
+  -- (scenes/register.lua), each in the colour picked then.
+  local shipcolors = require("game.shipcolors")
+  shipcolors.reset()
+  M.player.color, M.player.tag = nil, nil
+  local two = settings.coop and not M.demo
+  if M.pilot then two = two and M.pilot.players == 2 end
+  if two then
+    local colors = (M.pilot and M.pilot.colors) or shipcolors.DEFAULT
     local pl, p2 = M.player, Player.new()
     p2.input = util.p2
     p2.items, p2.special, p2.money = pl.items, pl.special, 0
-    p2.tag = util.color(90, 160, 255)
+    pl.color, p2.color = colors[1], colors[2]
+    pl.tag, p2.tag = shipcolors.swatch(colors[1]), shipcolors.swatch(colors[2])
     pl.x, p2.x = pl.x - 28, pl.x + 28
     p2.autofire = arg.autofire   -- --autoplay: both ships fire and can't die
     M.p2, M.weapons2 = p2, Weapons.new()
@@ -106,6 +115,7 @@ end
 -- Called by the main menu's RETURN: back to the wave where it was.
 function M.resumed()
   rap.palette("PALETTE_DAT")
+  require("game.shipcolors").reset()
   util.reset_colors()
   rap.grab_mouse(not rap.headless())
   music.wave(M.sector, M.map)
@@ -299,6 +309,7 @@ local function hud()
   -- Shield bar along the right edge, money top-left (as in the original HUD).
   local h = math.floor(pl.shield * 0.9)
   rap.rect(rap.W - 9, 10, 6, 92, util.color(30, 30, 30))
+  if M.p2 then rap.rect(rap.W - 9, 104, 6, 2, pl.tag) end   -- co-op: player one's colour
   rap.rect(rap.W - 8, 11 + 90 - h, 4, h, pl.shield > 25 and util.color(60, 200, 80) or util.color(230, 50, 40))
   rap.text(M.font, ("$%d"):format(pl.money), 4, 2, util.color(255, 230, 90))
   rap.text(M.font, ("WAVE %d"):format(M.map), 4, rap.H - 10, util.color(150, 150, 150))
@@ -317,7 +328,7 @@ local function hud()
   end
   local p2 = M.p2
   if p2 then
-    -- Player two's shield along the left edge (its "2" tag colour above).
+    -- Player two's shield along the left edge (its colour under it).
     local h2 = math.floor(p2.shield * 0.9)
     rap.rect(3, 12, 6, 92, util.color(30, 30, 30))
     rap.rect(4, 13 + 90 - h2, 4, h2, p2.shield > 25 and util.color(60, 200, 80) or util.color(230, 50, 40))

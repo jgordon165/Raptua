@@ -72,9 +72,11 @@ Options has an **ADVANCED** button of Raptua's own:
 
 ### Two-player co-op
 
-With **TWO PLAYERS** on, every mission has two ships. Player one flies as always (keyboard, mouse or the first controller); player two flies with the **second controller**, using the same buttons as player one's: the controller setup's fire, special and megabomb buttons on the Xbox 360 (pad 2), and A / right trigger fire, B special, Y megabomb, stick or D-pad on a PC or the Wii U (SDL's second game controller).
+**TWO PLAYERS** turns co-op on. Then a new campaign asks, after the difficulty, **HOW MANY PLAYERS?** (one or two), and for two, the **SHIP COLOURS**: each player picks a colour for their ship (red, blue, green, gold, purple, cyan or silver; never the same as the other player's), shown on the two ships. The pilot keeps the choice: its missions have two ships, each repainted in its player's colour, with a mark in that colour under each ship and under each shield bar. Pilots started for one player, and the original's saves, fly alone.
 
-- **One pilot, one progression:** both ships carry the pilot's weapons, specials and megabombs, and a pickup either ship takes goes to both; money either earns goes to the pilot. Each ship has its own shield: player two's bar is on the left edge, and a blue mark sits under player two's ship.
+In a two-player campaign every mission has two ships. Player one flies as always (keyboard, mouse or the first controller); player two flies with the **second controller**, using the same buttons as player one's: the controller setup's fire, special and megabomb buttons on the Xbox 360 (pad 2), and A / right trigger fire, B special, Y megabomb, stick or D-pad on a PC or the Wii U (SDL's second game controller).
+
+- **One pilot, one progression:** both ships carry the pilot's weapons, specials and megabombs, and a pickup either ship takes goes to both; money either earns goes to the pilot. Each ship has its own shield: player two's bar is on the left edge.
 - **No friendly fire, no collisions:** the ships' shots only ever hit enemies, and the ships push apart instead of overlapping.
 - Enemies go after whichever ship is nearer. If one ship goes down the other flies on; the wave is lost only when both are down, and won (boss and all) while either flies. A ship lost in a wave is back for the next one.
 - On the Xbox 360 the second pad belongs to player two in missions: its START and BACK don't open menus.

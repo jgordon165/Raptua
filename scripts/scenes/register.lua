@@ -1,6 +1,9 @@
 -- New pilot: the original REGISTER_SWD window. Type a name and a callsign,
 -- click the photo to change it, then sign in (the registration desk) to
 -- pick a difficulty and go to the hangar. The exit strip goes back.
+-- With co-op on (Options > ADVANCED > TWO PLAYERS), after the difficulty:
+-- one player or two, and for two, each player's ship colour; the pilot
+-- keeps both (`players`, `colors`).
 local scenes = require("core.scenes")
 local swd = require("ui.swd")
 local dialogs = require("ui.dialogs")
@@ -20,6 +23,7 @@ function M.enter()
   M.win = swd.open("REGISTER_SWD")
   M.photo = 1
   M.stack = {}
+  M.next = nil
   M.snd = rap.sound("SWEP_FX")
   if M.win then
     M.win:focus_area("VIEWID"); M.win:focus_area("VIEWREG"); M.win:focus_area("VIEWEXIT")
@@ -42,18 +46,36 @@ local function sign_in()
     M.win:select(name == "" and "NAME" or "CALLSIGN")
     return
   end
-  M.stack[#M.stack + 1] = dialogs.difficulty(function(d)
-    if d == nil then return end
+  local function create(d, players, colors)
     local p = pilot.new(name, call, M.photo, d)
+    p.players, p.colors = players, colors
     pilot.save(p)
     M.go = p
+  end
+  M.stack[#M.stack + 1] = dialogs.difficulty(function(d)
+    if d == nil then return end
+    if not require("core.settings").coop then create(d); return end
+    -- Each window opens once the one before has closed (the stack's top).
+    M.next = dialogs.players(function(n)
+      if n == nil then return end   -- back: the registration window again
+      if n == 1 then create(d, 1); return end
+      M.next = dialogs.ship_colors(function(c)
+        if c then create(d, 2, c) end
+      end)
+    end)
   end)
 end
 
 function M.update()
   if M.go then local p = M.go; M.go = nil; scenes.switch(require("scenes.hangar"), { pilot = p }); return end
   local top = M.stack[#M.stack]
-  if top then if top:update() then table.remove(M.stack) end; return end
+  if top then
+    if top:update() then
+      table.remove(M.stack)
+      if M.next then M.stack[#M.stack + 1] = M.next; M.next = nil end
+    end
+    return
+  end
   if not M.win then scenes.switch(require("scenes.mainmenu")); return end
   -- A controller: A on the name or callsign box opens the on-screen keyboard.
   local f0 = M.win:selected()

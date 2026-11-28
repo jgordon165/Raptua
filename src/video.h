@@ -35,7 +35,8 @@ public:
     void pixel(int x, int y, uint8_t c);
     // flip: bit0 = mirror horizontally, bit1 = vertically.
     // remap: if >= 0, every opaque pixel is drawn with that colour (flash/shadow).
-    void pic(const Pic& p, int x, int y, int flip = 0, int remap = -1);
+    // lut: if given, 256 entries: each pixel's colour is looked up (recolours).
+    void pic(const Pic& p, int x, int y, int flip = 0, int remap = -1, const uint8_t* lut = nullptr);
     // color >= 0: every glyph pixel in that colour; -1: the font's own pixel
     // values; base_mode: glyph shade + color (how the original windows tint
     // their text with a field's base colour).

@@ -222,11 +222,16 @@ int l_clip(lua_State* L) {   // clip() resets; clip(x, y, w, h)
     return 0;
 }
 
-int l_pic(lua_State* L) {   // pic(item, x, y [, flip [, remap]]) -> drawn?
+// pic(item, x, y [, flip [, remap [, lut]]]) -> drawn?
+// lut: a 256-byte string, each colour's replacement (co-op ship colours).
+int l_pic(lua_State* L) {
     auto* e = E(L);
     const Pic* p = get_pic(L, e, 1);
+    size_t n = 0;
+    const char* lut = lua_type(L, 6) == LUA_TSTRING ? lua_tolstring(L, 6, &n) : nullptr;
     if (p) e->screen.pic(*p, int(luaL_checknumber(L, 2)), int(luaL_checknumber(L, 3)),
-                         int(luaL_optinteger(L, 4, 0)), int(luaL_optinteger(L, 5, -1)));
+                         int(luaL_optinteger(L, 4, 0)), int(luaL_optinteger(L, 5, -1)),
+                         n == 256 ? reinterpret_cast<const uint8_t*>(lut) : nullptr);
     lua_pushboolean(L, p != nullptr);
     return 1;
 }

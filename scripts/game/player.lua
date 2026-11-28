@@ -133,8 +133,10 @@ end
 function M:draw()
   if self.dead or #self.frames == 0 then return end
   local remap = self.flash % 2 == 1 and util.color(255, 255, 255) or -1
-  rap.pic(self:frame(), math.floor(self.x), math.floor(self.y), 0, remap)
-  if self.tag then   -- co-op: a small "2" under the second ship
+  -- self.color: a co-op ship colour (game/shipcolors.lua; nil = the original).
+  local lut = self.color and require("game.shipcolors").lut(self.color)
+  rap.pic(self:frame(), math.floor(self.x), math.floor(self.y), 0, remap, lut)
+  if self.tag then   -- co-op: a mark in the player's colour under each ship
     rap.rect(math.floor(self.x + self.w / 2) - 3, math.floor(self.y + self.h) + 1, 7, 2, self.tag)
   end
 end

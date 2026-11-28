@@ -78,6 +78,12 @@ function selftest()
   Player.separate(a, b)
   assert(not util.overlap(a.x, a.y, a.w, a.h, b.x, b.y, b.w, b.h))
   assert(util.p2 and util.p2.held and util.p1.pressed)
+  -- Ship colours: the two players' never match; red paint is recognised.
+  local shipcolors = require("game.shipcolors")
+  assert(shipcolors.step(1, 1, 2) == 3 and shipcolors.step(2, -1, 1) == #shipcolors.LIST)
+  assert(shipcolors.is_red(shipcolors.hsv(200, 30, 30)) and not shipcolors.is_red(shipcolors.hsv(40, 60, 200)))
+  local r, g, b = shipcolors.rgb(shipcolors.hsv(40, 120, 220))
+  assert(math.abs(r - 40) <= 1 and math.abs(g - 120) <= 1 and math.abs(b - 220) <= 1)
   local smooth = require("game.smooth")
   local objs = { { x = 10, y = 20 }, { x = 0, y = 0 } }
   smooth.mark({ objs }); objs[1].x, objs[1].y = 18, 24; objs[2].x = 200

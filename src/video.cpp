@@ -16,16 +16,16 @@ void Screen::pixel(int x, int y, uint8_t c) {
     if (x >= clip.x0 && x < clip.x1 && y >= clip.y0 && y < clip.y1) px[size_t(y * kScreenW + x)] = c;
 }
 
-void Screen::pic(const Pic& p, int x, int y, int flip, int remap) {
+void Screen::pic(const Pic& p, int x, int y, int flip, int remap, const uint8_t* lut) {
     auto put = [&](int sx, int sy, uint8_t v) {
         int dx = (flip & 1) ? x + p.width - 1 - sx : x + sx;
         int dy = (flip & 2) ? y + p.height - 1 - sy : y + sy;
         if (dx < clip.x0 || dx >= clip.x1 || dy < clip.y0 || dy >= clip.y1) return;
-        px[size_t(dy * kScreenW + dx)] = remap >= 0 ? uint8_t(remap) : v;
+        px[size_t(dy * kScreenW + dx)] = remap >= 0 ? uint8_t(remap) : lut ? lut[v] : v;
     };
     if (!p.sprite) {
         // Fast path for unflipped opaque images (tiles, backgrounds).
-        if (flip == 0 && remap < 0) {
+        if (flip == 0 && remap < 0 && !lut) {
             int sx0 = std::max(0, clip.x0 - x), sx1 = std::min(p.width, clip.x1 - x);
             if (sx1 <= sx0) return;
             for (int sy = std::max(0, clip.y0 - y); sy < std::min(p.height, clip.y1 - y); ++sy)
