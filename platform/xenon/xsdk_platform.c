@@ -356,32 +356,42 @@ int xp_can_exit(void) { return 1; }
  * Xbox 360 workflow): ends this title and starts the .xex at path. */
 void XamLoaderLaunchTitle(const char *path, uint32_t flags);
 
+/* How the title was started: the loader's command line (xboxkrnl.exe
+ * ordinal 0x1AE, a variable; added to xsdk's import list by the Xbox 360
+ * workflow): the .xex's own name in quotes, then any arguments. */
+extern const char *const ExLoadedCommandLine;
+const char *xp_command_line(void) { return ExLoadedCommandLine ? ExLoadedCommandLine : ""; }
+
 void xp_exit_title(int status)
 {
     uint32_t d;
-    char target[512];
+    char commands[1024], target[512];
+    const char *c = commands;
+    int from_args = 0, r;
     struct stat st;
     xp_audio_stop_feeder();
     d = __atomic_exchange_n(&driver, 0u, __ATOMIC_ACQ_REL);
     if (d) XAudioUnregisterRenderDriverClient(d);
-    if (xp_dashboard_target(target, sizeof target)) {
-        if (stat(target, &st) == 0) {
-            /* As xsdk's _exit does, the presenter, display and GPU go back to
-             * XAM first; then the loader starts the chosen .xex in place of
-             * this one. */
-            xsdk_log_write("exit: launching %s", target);
-            xsdk_present_close();
-            xsdk_display_close();
-            (void)xsdk_gpu_close();
-            xsdk_log_close();
-            XamLoaderLaunchTitle(target, 0);
-            XamLoaderTerminateTitle();   /* not reached if the launch goes ahead */
-            for (;;) xsdk_thread_sleep(1000);
+    if (!xp_exit_commands(commands, sizeof commands, &from_args)) commands[0] = '\0';
+    else xsdk_log_write("exit: commands from %s: %s", from_args ? "the command line" : "dashboard.txt", commands);
+    while ((r = xp_exit_next(&c, target, sizeof target)) == XP_EXIT_LAUNCH) {
+        if (stat(target, &st) != 0) {
+            xsdk_log_write("exit: %s not found; next", target);
+            continue;
         }
-        xsdk_log_write("exit: %s not found; back to the default dashboard", target);
-    } else {
-        xsdk_log_write("exit: back to the dashboard");
+        /* As xsdk's _exit does, the presenter, display and GPU go back to
+         * XAM first; then the loader starts the chosen .xex (signed or, with
+         * the console's patches in place, homebrew) in place of this one. */
+        xsdk_log_write("exit: launching %s", target);
+        xsdk_present_close();
+        xsdk_display_close();
+        (void)xsdk_gpu_close();
+        xsdk_log_close();
+        XamLoaderLaunchTitle(target, 0);
+        XamLoaderTerminateTitle();   /* not reached if the launch goes ahead */
+        for (;;) xsdk_thread_sleep(1000);
     }
+    xsdk_log_write("exit: back to the dashboard");
     exit(status);
 }
 

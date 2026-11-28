@@ -1,16 +1,19 @@
-# Where QUIT on Raptua's main menu takes the Xbox 360.
+# What QUIT on Raptua's main menu does on the Xbox 360: exit commands, one
+# per line, tried in order. (Whatever starts raptua.xex can give them on the
+# command line instead, which then wins over this file:
+#   raptua.xex --exit "launch Usb0:\Aurora\default.xex; dashboard")
 #
-# Leave this as "default" to end the title and go to the console's default
-# dashboard (Aurora or FreeStyle if DashLaunch makes it the default).
+#   launch <path>   start that .xex in Raptua's place: Aurora, or any
+#                   homebrew (unsigned) .xex while the console's patches
+#                   (BadUpdate / FreeMyXe) are in place. If the file isn't
+#                   there, the next line is tried.
+#   dashboard       end the title: the console's default dashboard
 #
-# Or put the path of a .xex to launch instead, on the first line that isn't
-# a comment, for example:
-#   Usb0:\Aurora\default.xex        Aurora on the first USB stick
-#   Usb1:\Apps\XeXMenu\default.xex  another program on the second USB stick
-#   Hdd:\Aurora\default.xex         Aurora on the hard drive
-#   game:\Tools\default.xex         a folder inside the raptua folder
 # Drives: Usb0: Usb1: Usb2: Hdd: game: (the raptua folder), or a full
-# \Device\... path. If the file isn't there, Raptua goes to the default
-# dashboard and says so in raptua's log.
+# \Device\... path. With no command that works: the default dashboard.
+# Examples:
+#   launch Usb0:\Aurora\default.xex
+#   launch Hdd:\Aurora\default.xex
+#   launch Usb0:\Apps\XeXMenu\default.xex
 
-default
+dashboard

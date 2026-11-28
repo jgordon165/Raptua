@@ -92,10 +92,13 @@ jobs:
           key: xsdk-gcc-${{ hashFiles('xsdk/tools/toolchain/**') }}
       # Quit can launch another .xex (dashboard.txt): XamLoaderLaunchTitle,
       # xam.xex ordinal 0x1A4, which xsdk's import list doesn't have yet.
-      - name: Add XamLoaderLaunchTitle to xsdk's imports
+      - name: Add XamLoaderLaunchTitle and ExLoadedCommandLine to xsdk's imports
         run: |
           grep -q "XamLoaderLaunchTitle\b" xsdk/imports/imports.txt ||
             printf 'xam.xex       0x1A4  XamLoaderLaunchTitle\n' >> xsdk/imports/imports.txt
+          # and its command line (--exit), xboxkrnl.exe's ExLoadedCommandLine variable
+          grep -q "ExLoadedCommandLine" xsdk/imports/imports.txt ||
+            printf 'xboxkrnl.exe  0x1AE  ExLoadedCommandLine                 variable\n' >> xsdk/imports/imports.txt
       - name: Build libxsdk
         run: make -C xsdk -j$(nproc) build/libxsdk.a
       - name: Configure

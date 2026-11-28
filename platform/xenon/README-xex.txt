@@ -31,12 +31,16 @@ To leave, choose QUIT on the main menu (or press B there) and answer YES to
 goes to its default dashboard (Aurora or FreeStyle if DashLaunch makes it
 the default).
 
-To leave to a particular dashboard or program instead, put its .xex path in
-dashboard.txt (next to raptua.xex), e.g.  Usb0:\Aurora\default.xex  or
-Hdd:\Aurora\default.xex . Drives: Usb0:, Usb1:, Usb2:, Hdd:, game: (the
-raptua folder) or a full \Device\... path. "default" (as shipped), an empty
-file or no file means the default dashboard; so does a path whose file
-isn't there (the log says so).
+To leave to a particular dashboard or program instead, give QUIT exit
+commands, tried in order: "launch <path>" starts that .xex (Aurora, or any
+homebrew .xex while BadUpdate / FreeMyXe's patches are in place; a missing
+file moves on to the next command) and "dashboard" ends the title. They come
+from raptua.xex's command line if whatever starts it passes one:
+    raptua.xex --exit "launch Usb0:\Aurora\default.xex; dashboard"
+or else from dashboard.txt next to raptua.xex, one command per line (a line
+with just a path still means "launch" it). Drives: Usb0:, Usb1:, Usb2:, Hdd:,
+game: (the raptua folder) or a full \Device\... path. raptua.log says which
+commands it read and what it did.
 
 Settings (volumes, game speed) are saved next to raptua.xex.
 
