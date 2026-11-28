@@ -36,9 +36,15 @@ static int key_down[K_COUNT];
  * in a mask from also being keys (a mission takes its bound buttons for
  * itself, so Y as fire doesn't also drop a megabomb as Shift). As in
  * Meguarace. */
-static unsigned pad_buttons, pad_key_mask;
+static unsigned pad_buttons, pad_key_mask, port_buttons[4];
+static unsigned key_ports = 0xF;   /* the pads whose buttons also make keys */
 unsigned XENON_PadButtons(void) { return pad_buttons; }
 void XENON_SetPadKeyMask(unsigned mask) { pad_key_mask = mask; }
+/* One pad's buttons (port 0..3), for two-player co-op. */
+unsigned XENON_PadButtonsPort(int port) { return port >= 0 && port < 4 ? port_buttons[port] : 0; }
+/* Which pads (bit per port) also make keys: in co-op the second player's pad
+ * is that player's only, not the menus' or player one's. */
+void XENON_SetPadKeyPorts(unsigned ports) { key_ports = ports; }
 
 static unsigned pad_bits(const xp_pad *p)
 {
@@ -102,8 +108,10 @@ static void XENON_PumpEvents(_THIS)
     for (port = 0; port < 4; ++port) {
         xp_pad p;
         xp_get_pad(port, &p);
-        if (!p.connected) continue;
-        buttons |= pad_bits(&p);
+        if (!p.connected) { port_buttons[port] = 0; continue; }
+        port_buttons[port] = pad_bits(&p);
+        buttons |= port_buttons[port];
+        if (!(key_ports & (1u << port))) continue;
         unmask(&p, pad_key_mask);
         key_map(&p, now);
     }

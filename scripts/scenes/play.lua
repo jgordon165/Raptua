@@ -41,6 +41,22 @@ function M.enter(arg)
   M.enemies = Enemies.new("SPRITE1_ITM", M.difficulty)
   M.bonus = Bonus.new()
   M.weapons = Weapons.new()
+  M.p2, M.weapons2 = nil, nil
+  -- Co-op (Options > ADVANCED > TWO PLAYERS): a second ship on the same
+  -- pilot. It shares the ship's stores (the same items table: weapons,
+  -- specials and megabombs) and the pilot's money; each ship has its own
+  -- shield and its own guns. Player shots only ever hit enemies, so the
+  -- ships can't hurt each other, and they are kept from overlapping.
+  if settings.coop and not M.demo then
+    local pl, p2 = M.player, Player.new()
+    p2.input = util.p2
+    p2.items, p2.special, p2.money = pl.items, pl.special, 0
+    p2.tag = util.color(90, 160, 255)
+    pl.x, p2.x = pl.x - 28, pl.x + 28
+    p2.autofire = arg.autofire   -- --autoplay: both ships fire and can't die
+    M.p2, M.weapons2 = p2, Weapons.new()
+    rap.pad_keys_first_only(true)   -- the 360: player two's pad is only player two's
+  end
   M.tick = 0
   M.font = rap.find("GAME_FNT")
   M.pause = nil
@@ -60,7 +76,32 @@ function M.enter(arg)
   rap.grab_mouse(not rap.headless())
 end
 
-function M.leave() rap.grab_mouse(false); rap.fade(1); util.take_pad(false) end
+function M.leave() rap.grab_mouse(false); rap.fade(1); util.take_pad(false); rap.pad_keys_first_only(false) end
+
+-- The ships in play (one, or two in co-op).
+local function ships()
+  if M.p2 then return { M.player, M.p2 } end
+  return { M.player }
+end
+
+-- Every ship is down.
+local function lost()
+  return M.player.dead and (not M.p2 or M.p2.dead)
+end
+
+-- A ship's own controls, read every tick: special-weapon select and megabomb.
+local function buttons(pl)
+  if pl.dead then return end
+  if pl.input.pressed("special") and pl:next_special(Weapons.FIRST_SPECIAL, Weapons.LAST_SPECIAL) then
+    rap.play(M.snd_swep, 0.7)
+    M.bonus.message, M.bonus.message_t = Weapons.LIB[pl.special].name, 50
+  end
+  if pl.input.pressed("bomb") and pl:bombs() > 0 then
+    pl.items[Weapons.MEGABOMB] = pl:bombs() - 1
+    M.enemies:megabomb(M.shots, pl, M.bonus)
+    rap.play(M.snd_bomb, 1.0)
+  end
+end
 
 -- Called by the main menu's RETURN: back to the wave where it was.
 function M.resumed()
@@ -108,20 +149,14 @@ function M.update()
       return best
     end
   end
-  pl._px, pl._py = pl.x, pl.y     -- for smooth motion: the ship moves every tick
-  pl:update()
+  local p2 = M.p2
+  for _, s in ipairs(ships()) do
+    s._px, s._py = s.x, s.y     -- for smooth motion: the ships move every tick
+    s:update()
+  end
+  if p2 then Player.separate(pl, p2) end
   -- Edge-triggered controls are read every tick so presses aren't lost.
-  if not pl.dead and util.pressed("special") then
-    if pl:next_special(Weapons.FIRST_SPECIAL, Weapons.LAST_SPECIAL) then
-      rap.play(M.snd_swep, 0.7)
-      M.bonus.message, M.bonus.message_t = Weapons.LIB[pl.special].name, 50
-    end
-  end
-  if not pl.dead and util.pressed("bomb") and pl:bombs() > 0 then
-    pl.items[Weapons.MEGABOMB] = pl:bombs() - 1
-    M.enemies:megabomb(M.shots, pl, M.bonus)
-    rap.play(M.snd_bomb, 1.0)
-  end
+  for _, s in ipairs(ships()) do buttons(s) end
 
   M.tick = M.tick + 1
   if M.tick % settings.cadence == 0 then
@@ -146,54 +181,83 @@ function M.update()
       end
       M.demo_bomb = r.bomb
       if r.fire then M.weapons:fire_all(pl, M.enemies) end
-    elseif not pl.dead and not pl.flyoff and (util.held("fire") or pl.autofire) then M.weapons:fire_all(pl, M.enemies) end
-    M.enemies:step(scroll, pl, M.shots)
+    else
+      if not pl.dead and not pl.flyoff and (util.held("fire") or pl.autofire) then M.weapons:fire_all(pl, M.enemies) end
+      if p2 and not p2.dead and not p2.flyoff and (p2.input.held("fire") or p2.autofire) then M.weapons2:fire_all(p2, M.enemies) end
+    end
+    M.enemies:step(scroll, pl, M.shots, p2)
     -- The wave is won, as in the original, once the map's last enemy has
     -- appeared and every enemy is gone (the boss included): reaching the top
     -- of the map isn't enough. Then 60 game frames: for the last 40 the
     -- controls are taken away and the ship lines up with the middle and
     -- flies off the top of the screen.
-    if not M.wave_over and not pl.dead and lv:all_spawned() and #M.enemies.list == 0 then M.wave_over = 60 end
-    if M.wave_over and not pl.dead then
+    -- In co-op the wave goes on while either ship flies.
+    if not M.wave_over and not lost() and lv:all_spawned() and #M.enemies.list == 0 then M.wave_over = 60 end
+    if M.wave_over and not lost() then
       M.wave_over = M.wave_over - 1
       if M.wave_over < 40 then
-        if not pl.flyoff then pl.flyoff = true; rap.play(M.snd_flyby, 1.0) end
-        local cx = pl.x + pl.w / 2
-        pl.x = pl.x + (cx < 152 and 8 or cx > 168 and -8 or 0)
-        pl.y = pl.y - 4
+        for i, s in ipairs(ships()) do
+          if not s.dead then
+            if not s.flyoff then s.flyoff = true; if i == 1 or pl.dead then rap.play(M.snd_flyby, 1.0) end end
+            -- Two ships line up side by side either side of the middle.
+            local mid = not p2 and 160 or (i == 1 and 160 - 20 or 160 + 20)
+            if p2 and (pl.dead or p2.dead) then mid = 160 end
+            local cx = s.x + s.w / 2
+            s.x = s.x + (cx < mid - 8 and 8 or cx > mid + 8 and -8 or 0)
+            s.y = s.y - 4
+          end
+        end
       end
     end
     -- A boss on screen (an enemy whose record names a song) keeps the boss
     -- sound going, as the original does.
     if M.enemies:boss_present() and not rap.sound_playing(M.snd_boss) then rap.play(M.snd_boss, 0.8) end
     M.weapons:step(pl, M.enemies, M.shots, lv, M.bonus)
+    if p2 then M.weapons2:step(p2, M.enemies, M.shots, lv, M.bonus) end
     M.shots:update(scroll)
-    M.bonus:update(scroll, pl)
-    M.enemies:collide_player(pl, M.shots)
+    M.bonus:update(scroll, pl, p2)
+    for _, s in ipairs(ships()) do M.enemies:collide_player(s, M.shots) end
+    if p2 then
+      -- One purse: what player two earns goes to the pilot's (player one's) money.
+      pl.money, p2.money = pl.money + p2.money, 0
+      -- The first special picked up is selected on both ships.
+      if not pl.special then pl.special = p2.special end
+      if not p2.special then p2.special = pl.special end
+    end
     if M.autofire and rap.headless() and math.floor(lv.cam) % 400 == 0 and scroll > 0 then
       rap.screenshot(("autoplay_%05d.bmp"):format(math.floor(lv.cam)))
     end
   end
   -- Low shield: the warning beep, once a second.
   M.warn_t = math.max(0, M.warn_t - 1)
-  if not pl.dead and pl.shield > 0 and pl.shield <= 25 and M.warn_t == 0 then
-    rap.play(M.snd_warn, 0.8)
-    M.warn_t = 70
+  for _, s in ipairs(ships()) do
+    if not s.dead and s.shield > 0 and s.shield <= 25 and M.warn_t == 0 then
+      rap.play(M.snd_warn, 0.8)
+      M.warn_t = 70
+    end
+  end
+  -- A ship going down explodes (in co-op the other flies on).
+  for _, s in ipairs(ships()) do
+    if s.dead and not s.boomed then
+      s.boomed = true
+      if os.getenv("RAPTUA_TRACE") then io.stderr:write(("ship %d down\n"):format(s == M.player and 1 or 2)) end
+      rap.play(M.snd_crash, 1.0)
+      M.shots:explode(s.x + s.w / 2, s.y + s.h / 2, true)
+    end
   end
 
-  if (pl.dead or (M.wave_over and M.wave_over <= 0)) and not M.end_t then
+  if (lost() or (M.wave_over and M.wave_over <= 0)) and not M.end_t then
     M.end_t = 0
-    if pl.dead then
-      music.death()
-      rap.play(M.snd_crash, 1.0)
-      M.shots:explode(pl.x + pl.w / 2, pl.y + pl.h / 2, true)
+    if lost() then music.death() end
+    if os.getenv("RAPTUA_TRACE") then
+      io.stderr:write(("wave %d %s (%d ship%s)\n"):format(M.map, lost() and "lost" or "won", #ships(), M.p2 and "s" or ""))
     end
   end
   if M.end_t then
     M.end_t = M.end_t + 1
     M.fade = math.max(0, 1 - M.end_t / 140)
     if M.end_t > 160 then
-      if pl.dead then
+      if lost() then
         -- The death movie, then the main menu (the last save stands).
         local menu = function() scenes.switch(require("scenes.mainmenu")) end
         if M.autofire then menu() else scenes.switch(require("scenes.movie"), { sequence = "death", done = menu }) end
@@ -202,6 +266,9 @@ function M.update()
         -- and lands at the hangar (the landing movie first; the sector's
         -- end movie too after its last wave), as in the original.
         pilot.collect(M.pilot, pl)
+        if p2 and pl.dead then   -- co-op: player two brought the ship home
+          M.pilot.shield, M.pilot.super = p2.shield, p2.super
+        end
         pilot.wave_done(M.pilot, M.sector)
         local p, sector = M.pilot, M.sector
         local hangar = function() scenes.switch(require("scenes.hangar"), { pilot = p }) end
@@ -214,6 +281,8 @@ function M.update()
       else
         local nxt = M.map + 1
         if rap.find(("MAP%dG1_MAP"):format(nxt)) then
+          if p2 and pl.dead then pl.shield, pl.super = p2.shield, p2.super end
+          pl.boomed = nil
           scenes.switch(M, { sector = M.sector, map = nxt, difficulty = M.difficulty, player = pl, autofire = M.autofire })
         else
           scenes.switch(require("scenes.mainmenu"))
@@ -246,14 +315,37 @@ local function hud()
     local w = rap.text_size(M.font, name)
     rap.text(M.font, name, (rap.W - w) // 2, rap.H - 20, util.color(140, 200, 255))   -- above WAVE / BOMBS
   end
+  local p2 = M.p2
+  if p2 then
+    -- Player two's shield along the left edge (its "2" tag colour above).
+    local h2 = math.floor(p2.shield * 0.9)
+    rap.rect(3, 12, 6, 92, util.color(30, 30, 30))
+    rap.rect(4, 13 + 90 - h2, 4, h2, p2.shield > 25 and util.color(60, 200, 80) or util.color(230, 50, 40))
+    rap.rect(3, 106, 6, 2, p2.tag)
+    if p2.super > 0 then
+      local sh = math.floor(p2.super * 0.9)
+      rap.rect(9, 12, 4, 92, util.color(30, 30, 30))
+      rap.rect(10, 13 + 90 - sh, 2, sh, util.color(90, 160, 255))
+    end
+    if p2.special and p2.special ~= pl.special then
+      local name = Weapons.LIB[p2.special].name
+      local w = rap.text_size(M.font, name)
+      rap.text(M.font, name, (rap.W - w) // 2, rap.H - 30, p2.tag)
+    end
+  end
   M.bonus:draw_message(M.font)
 end
 
 -- What moves on game frames (smooth motion places these between frames).
 function M.moving()
   local w = M.weapons
-  return { M.enemies.list, M.shots.player, M.shots.enemy, M.shots.fx, M.bonus.list,
-           w.shots or {}, w.puffs or {}, w.smoke or {} }
+  local t = { M.enemies.list, M.shots.player, M.shots.enemy, M.shots.fx, M.bonus.list,
+              w.shots or {}, w.puffs or {}, w.smoke or {} }
+  local w2 = M.weapons2
+  if w2 then
+    t[#t + 1] = w2.shots or {}; t[#t + 1] = w2.puffs or {}; t[#t + 1] = w2.smoke or {}
+  end
+  return t
 end
 
 function M.draw()
@@ -269,18 +361,20 @@ function M.draw()
     if M.level._pcam and math.abs(cam - M.level._pcam) <= smooth.JUMP then
       M.level.cam = M.level._pcam + (cam - M.level._pcam) * a
     end
-    local pl = M.player
-    sx, sy = pl.x, pl.y
-    if pl._px and math.abs(pl.x - pl._px) <= smooth.JUMP and math.abs(pl.y - pl._py) <= smooth.JUMP then
-      local t = rap.alpha()
-      pl.x, pl.y = pl._px + (pl.x - pl._px) * t, pl._py + (pl.y - pl._py) * t
+    sx, sy = {}, {}
+    for i, pl in ipairs(ships()) do
+      sx[i], sy[i] = pl.x, pl.y
+      if pl._px and math.abs(pl.x - pl._px) <= smooth.JUMP and math.abs(pl.y - pl._py) <= smooth.JUMP then
+        local t = rap.alpha()
+        pl.x, pl.y = pl._px + (pl.x - pl._px) * t, pl._py + (pl.y - pl._py) * t
+      end
     end
   end
   M.draw_scene()
   if lists then
     smooth.restore(lists)
     M.level.cam = cam
-    M.player.x, M.player.y = sx, sy
+    for i, pl in ipairs(ships()) do pl.x, pl.y = sx[i], sy[i] end
   end
 end
 
@@ -294,10 +388,11 @@ function M.draw_scene()
   M.enemies:draw(false)
   M.player:draw()
   M.weapons:draw(M.player)
+  if M.p2 then M.p2:draw(); M.weapons2:draw(M.p2) end
   M.shots:draw()
   rap.clip()
   hud()
-  local msg = M.end_t and (M.player.dead and "SHIP DESTROYED" or "SECTOR CLEARED")
+  local msg = M.end_t and (lost() and (M.p2 and "SHIPS DESTROYED" or "SHIP DESTROYED") or "SECTOR CLEARED")
   if msg then
     -- One centred line per "\n", so long messages fit the 288-pixel playfield.
     local y = 88

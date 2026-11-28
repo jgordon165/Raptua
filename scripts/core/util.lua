@@ -70,6 +70,38 @@ function M.pressed(action)
   return false
 end
 
+-- Co-op's second player (Options > ADVANCED > TWO PLAYERS): the second
+-- controller, with the same button mapping as player one's. On the Xbox 360
+-- its own pad's buttons (port 2); elsewhere SDL's second game controller
+-- ("pad2_...", with the first controller's fixed buttons).
+local P2_SDL = {
+  left = { "pad2_dpleft", "pad2_stick_left" }, right = { "pad2_dpright", "pad2_stick_right" },
+  up = { "pad2_dpup", "pad2_stick_up" }, down = { "pad2_dpdown", "pad2_stick_down" },
+  fire = { "pad2_a", "pad2_trigger_right" }, special = { "pad2_b" }, bomb = { "pad2_y" },
+}
+local P2_DIR = { left = "LEFT", right = "RIGHT", up = "UP", down = "DOWN" }
+
+M.p2 = {}
+function M.p2.held(action)
+  if XENON then
+    if P2_DIR[action] then return rap.pad_held(P2_DIR[action], 2) end
+    return rap.pad_held(button(action), 2)
+  end
+  for _, n in ipairs(P2_SDL[action] or {}) do if rap.held(n) then return true end end
+  return false
+end
+function M.p2.pressed(action)
+  if XENON then
+    if P2_DIR[action] then return rap.pad_pressed(P2_DIR[action], 2) end
+    return rap.pad_pressed(button(action), 2)
+  end
+  for _, n in ipairs(P2_SDL[action] or {}) do if rap.pressed(n) then return true end end
+  return false
+end
+
+-- Player one's input, as an object like M.p2 (game/player.lua takes either).
+M.p1 = { held = function(a) return M.held(a) end, pressed = function(a) return M.pressed(a) end }
+
 -- In a mission (scenes/play.lua): the 360's bound buttons stop also being
 -- the keys they stand for in menus. take(false) gives them back.
 function M.take_pad(on)

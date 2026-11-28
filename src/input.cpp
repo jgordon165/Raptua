@@ -5,6 +5,8 @@
 #ifdef RAPTUA_XENON_LAYOUT
 extern "C" unsigned XENON_PadButtons(void);        // platform/xenon/sdl/SDL_xenon_video.c
 extern "C" void XENON_SetPadKeyMask(unsigned mask);
+extern "C" unsigned XENON_PadButtonsPort(int port);
+extern "C" void XENON_SetPadKeyPorts(unsigned ports);
 #endif
 
 namespace raptua {
@@ -27,17 +29,28 @@ unsigned Input::pad_bit(const std::string& button) {
 void Input::poll_pad() {
 #ifdef RAPTUA_XENON_LAYOUT
     pad_now_ = XENON_PadButtons();
+    for (int i = 0; i < 4; ++i) port_now_[i] = XENON_PadButtonsPort(i);
 #endif
 }
 
-bool Input::pad_held(const std::string& button) const {
+bool Input::pad_held(const std::string& button, int port) const {
     const unsigned b = pad_bit(button);
+    if (port >= 1 && port <= 4) return b && (port_now_[port - 1] & b);
     return b && (pad_now_ & b);
 }
 
-bool Input::pad_pressed(const std::string& button) const {
+bool Input::pad_pressed(const std::string& button, int port) const {
     const unsigned b = pad_bit(button);
+    if (port >= 1 && port <= 4) return b && (port_now_[port - 1] & b) && !(port_prev_[port - 1] & b);
     return b && (pad_now_ & b) && !(pad_prev_ & b);
+}
+
+void Input::pad_keys_first_only(bool on) {
+#ifdef RAPTUA_XENON_LAYOUT
+    XENON_SetPadKeyPorts(on ? 1u : 0xFu);
+#else
+    (void)on;
+#endif
 }
 
 std::string Input::pad_first() const {
@@ -57,11 +70,20 @@ void Input::pad_take(const std::vector<std::string>& buttons) {
 #endif
 }
 
+#ifndef RAPTUA_XENON_LAYOUT
+// 1 for the first controller, 2 for the second (by SDL joystick instance).
+int Input::pad_index(SDL_JoystickID id) const {
+    if (pad2_ && SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pad2_)) == id) return 2;
+    return 1;
+}
+#endif
+
 void Input::begin_frame() {
     pressed_.clear();
     text.clear();
     key_down.clear();
     pad_prev_ = pad_now_;
+    for (int i = 0; i < 4; ++i) port_prev_[i] = port_now_[i];
     mouse_dx = mouse_dy = 0;
     mouse_moved = false;
 }
@@ -100,24 +122,31 @@ void Input::event(const SDL_Event& e) {
 #ifndef RAPTUA_XENON_LAYOUT
     // (The Xbox 360's SDL has no game-controller module: its pad arrives as
     // keyboard keys instead, platform/xenon/sdl/SDL_xenon_video.c.)
+    // Two controllers: the first is "pad_...", a second (co-op's player
+    // two) "pad2_...".
     case SDL_CONTROLLERDEVICEADDED:
         if (!pad_) pad_ = SDL_GameControllerOpen(e.cdevice.which);
+        else if (!pad2_) pad2_ = SDL_GameControllerOpen(e.cdevice.which);
         break;
     case SDL_CONTROLLERDEVICEREMOVED:
         if (pad_ && SDL_GameControllerGetAttached(pad_) == SDL_FALSE) { SDL_GameControllerClose(pad_); pad_ = nullptr; }
+        if (pad2_ && SDL_GameControllerGetAttached(pad2_) == SDL_FALSE) { SDL_GameControllerClose(pad2_); pad2_ = nullptr; }
         break;
     case SDL_CONTROLLERBUTTONDOWN:
-    case SDL_CONTROLLERBUTTONUP:
-        set(std::string("pad_") + SDL_GameControllerGetStringForButton(SDL_GameControllerButton(e.cbutton.button)),
+    case SDL_CONTROLLERBUTTONUP: {
+        const char* pre = pad_index(e.cbutton.which) == 2 ? "pad2_" : "pad_";
+        set(std::string(pre) + SDL_GameControllerGetStringForButton(SDL_GameControllerButton(e.cbutton.button)),
             e.type == SDL_CONTROLLERBUTTONDOWN);
         break;
+    }
     case SDL_CONTROLLERAXISMOTION: {
         const int dead = 12000;
         int v = e.caxis.value;
-        if (e.caxis.axis == SDL_CONTROLLER_AXIS_LEFTX) { set("pad_stick_left", v < -dead); set("pad_stick_right", v > dead); }
-        if (e.caxis.axis == SDL_CONTROLLER_AXIS_LEFTY) { set("pad_stick_up", v < -dead); set("pad_stick_down", v > dead); }
-        if (e.caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT) set("pad_trigger_right", v > dead);
-        if (e.caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT) set("pad_trigger_left", v > dead);
+        const std::string pre = pad_index(e.caxis.which) == 2 ? "pad2_" : "pad_";
+        if (e.caxis.axis == SDL_CONTROLLER_AXIS_LEFTX) { set(pre + "stick_left", v < -dead); set(pre + "stick_right", v > dead); }
+        if (e.caxis.axis == SDL_CONTROLLER_AXIS_LEFTY) { set(pre + "stick_up", v < -dead); set(pre + "stick_down", v > dead); }
+        if (e.caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT) set(pre + "trigger_right", v > dead);
+        if (e.caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT) set(pre + "trigger_left", v > dead);
         break;
     }
 #endif

@@ -76,6 +76,8 @@ end
 --                  game itself is unchanged
 --   MUSIC TEMPO    the music a little faster: +3, +6, +10 or +15% (the
 --                  sequencer's clock; the pitch stays)
+--   TWO PLAYERS    co-op: a second controller flies a second ship in the
+--                  missions, on player one's pilot (scenes/play.lua)
 --   GAME SPEED     game frames a second (the original's 3, 4 or 5 vertical
 --                  blanks per frame; also F5 on the main menu)
 --   KEYBOARD / CONTROLLER  the key or button setup
@@ -84,7 +86,7 @@ end
 function M.advanced()
   local controls = require("game.controls")
   local XENON = rap.platform == "xenon"
-  local rows = { "smooth", "tempo", "speed", "controls", "done" }
+  local rows = { "smooth", "tempo", "speed", "coop", "controls", "done" }
   local d = { row = 1, t = 0 }
   local W, RH = 236, 13
   local H = (#rows + 2) * RH + 10
@@ -92,6 +94,7 @@ function M.advanced()
 
   local function label(r)
     if r == "smooth" then return "SMOOTH MOTION", settings.smooth and "ON (60 FPS)" or "OFF" end
+    if r == "coop" then return "TWO PLAYERS (CO-OP)", settings.coop and "ON" or "OFF" end
     if r == "tempo" then return "MUSIC TEMPO", settings.tempo == 100 and "ORIGINAL" or ("+%d%%"):format(settings.tempo - 100) end
     if r == "speed" then return settings.cadence_label(), "" end
     if r == "controls" then return controls.kind() == "pad" and "CONTROLLER SETUP" or "KEYBOARD SETUP", "" end
@@ -106,6 +109,9 @@ function M.advanced()
     if r == "smooth" then
       settings.smooth = not settings.smooth
       settings.apply(); settings.save()
+    elseif r == "coop" then
+      settings.coop = not settings.coop
+      settings.save()
     elseif r == "tempo" then
       settings.cycle_tempo(dir)
     elseif r == "speed" then
