@@ -188,6 +188,23 @@ static void test_music() {
     std::vector<float> rest(44100 * 2 * 2, 0.0f);   // past the end: stops by itself
     m.render(rest.data(), 44100 * 2, 44100, 1.0f);
     CHECK(!m.playing());
+
+    // Tempo (Options > ADVANCED > MUSIC TEMPO): faster ends the song sooner,
+    // by the same factor.
+    auto length_at = [&](float tempo) {
+        OplMusic t;
+        t.set_bank(g);
+        t.tempo = tempo;
+        MusScore s2;
+        decode_mus(tiny_mus(), s2);
+        t.play(s2, false);
+        std::vector<float> chunk(441 * 2, 0.0f);
+        int n = 0;
+        while (t.playing() && n < 1000) { t.render(chunk.data(), 441, 44100, 1.0f); ++n; }
+        return n;   // in hundredths of a second
+    };
+    const int base = length_at(1.0f), quick = length_at(1.25f);
+    CHECK(base > 0 && quick < base && std::abs(quick * 1.25 - base) <= 2);
 }
 
 static void test_swd() {

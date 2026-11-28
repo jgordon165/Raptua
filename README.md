@@ -65,6 +65,7 @@ To build: `cmake -DCMAKE_TOOLCHAIN_FILE=platform/xenon/toolchain.cmake` (LibXeno
 Options has an **ADVANCED** button of Raptua's own:
 
 - **Smooth motion:** every displayed frame is drawn (60 a second on the Xbox 360), with the map, enemies, shots and pickups placed between the game's own frames (`game/smooth.lua`). The game itself is unchanged: enemies move, fire and get hit only on the original's game frames, by the same amounts. The in-between pictures trail by up to one game frame. Off by default.
+- **Music tempo:** the music a little faster: +3%, +6%, +10% or +15% over the original (only the sequencer's clock speeds up; the pitch stays). Original by default.
 - **Game speed:** the original's 3, 4 or 5 vertical blanks per game frame (also F5 on the main menu).
 - **Keyboard / controller setup:** see Controls.
 

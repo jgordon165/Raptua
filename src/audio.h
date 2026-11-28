@@ -22,6 +22,7 @@ public:
     void stop_all();
     float master = 1.0f;         // sound effects
     float music_volume = 0.7f;
+    void set_music_tempo(float t) { music_.tempo.store(t, std::memory_order_relaxed); }
 
     // Music. play_music() swaps the song in under the mixer lock.
     void set_music_bank(const GenMidi& bank);

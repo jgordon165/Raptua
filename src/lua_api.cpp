@@ -457,6 +457,13 @@ int l_music_playing(lua_State* L) {
 
 int l_held(lua_State* L) { lua_pushboolean(L, E(L)->input.held(luaL_checkstring(L, 1))); return 1; }
 int l_pressed(lua_State* L) { lua_pushboolean(L, E(L)->input.pressed(luaL_checkstring(L, 1))); return 1; }
+// music_tempo(t): the music's tempo as a multiple of the original's (1.0).
+int l_music_tempo(lua_State* L) {
+    double t = luaL_checknumber(L, 1);
+    E(L)->audio.set_music_tempo(float(t < 0.5 ? 0.5 : t > 2.0 ? 2.0 : t));
+    return 0;
+}
+
 // smooth(on): draw every displayed frame (smooth motion); alpha() -> 0..1,
 // how far the clock is past the last tick, for placing things between ticks.
 int l_smooth(lua_State* L) { E(L)->smooth = lua_toboolean(L, 1) != 0; return 0; }
@@ -586,7 +593,7 @@ void register_lua_api(lua_State* L, Engine* e) {
         {"sound", l_sound}, {"play", l_play}, {"sound_playing", l_sound_playing}, {"volume", l_volume}, {"stop_sounds", l_stop_sounds},
         {"music", l_music}, {"music_stop", l_music_stop}, {"music_volume", l_music_volume},
         {"music_playing", l_music_playing},
-        {"held", l_held}, {"pressed", l_pressed}, {"typed", l_typed}, {"smooth", l_smooth}, {"alpha", l_alpha}, {"key_down", l_key_down},
+        {"held", l_held}, {"pressed", l_pressed}, {"typed", l_typed}, {"smooth", l_smooth}, {"music_tempo", l_music_tempo}, {"alpha", l_alpha}, {"key_down", l_key_down},
         {"pad_held", l_pad_held}, {"pad_pressed", l_pad_pressed}, {"pad_button", l_pad_button}, {"pad_take", l_pad_take},
         {"mouse", l_mouse}, {"grab_mouse", l_grab_mouse},
         {"tick_rate", l_tick_rate}, {"quit", l_quit}, {"can_exit", l_can_exit}, {"fullscreen", l_fullscreen},
