@@ -5,6 +5,7 @@
 // No SDL here, so the tests render it directly; the mixer (audio.cpp) calls
 // render() from the audio thread.
 #pragma once
+#include <atomic>
 #include <array>
 #include <cstdint>
 #include <memory>
@@ -75,6 +76,12 @@ private:
     std::array<Channel, 16> channels_{};
     uint32_t age_ = 0;
     double timer_acc_ = 0;             // chip samples until the next tick
+public:
+    // Tempo as a multiple of the original's (Options > ADVANCED > MUSIC
+    // TEMPO): 1.0 is Raptor's 70 Hz sequencer; 1.05 plays 5% faster. Only
+    // the sequencer's clock changes, so the pitch stays the same.
+    std::atomic<float> tempo{1.0f};
+private:
     double resample_pos_ = 1.0;
     float prev_[2] = {0, 0}, cur_[2] = {0, 0};
 };

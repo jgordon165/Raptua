@@ -266,7 +266,11 @@ void OplMusic::render(float* out, int frames, int rate, float gain) {
         while (resample_pos_ >= 1.0) {
             resample_pos_ -= 1.0;
             timer_acc_ -= 1.0;
-            while (timer_acc_ < 0) { timer_acc_ += kChipRate / MusScore::kTickHz; tick(); }
+            while (timer_acc_ < 0) {
+                const float t = tempo.load(std::memory_order_relaxed);
+                timer_acc_ += kChipRate / (MusScore::kTickHz * double(t > 0.25f ? t : 1.0f));
+                tick();
+            }
             ymfm::ymf262::output_data o;
             chip_->opl.generate(&o, 1);
             prev_[0] = cur_[0]; prev_[1] = cur_[1];

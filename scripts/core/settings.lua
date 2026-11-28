@@ -6,9 +6,22 @@
 -- The original waits for at least 3 (23.3 fps, its ceiling on a fast PC);
 -- on slower PCs a frame took 4 or 5 (17.5 / 14 fps) and the whole game ran
 -- slower, as nothing scales movement by frame time.
-local M = { music = 90, sound = 100, detail = true, cadence = 4, smooth = false,
+local M = { music = 90, sound = 100, detail = true, cadence = 4, smooth = false, tempo = 100,
             keys = {}, pad = {} }   -- bindings: game/controls.lua
 M.CADENCES = { 3, 4, 5 }
+-- Music tempo, percent of the original's (Options > ADVANCED > MUSIC TEMPO).
+M.TEMPOS = { 100, 103, 106, 110, 115 }
+M.TEMPOS_SET = {}
+for _, t in ipairs(M.TEMPOS) do M.TEMPOS_SET[t] = true end
+
+-- Step the music tempo through TEMPOS, apply and save.
+function M.cycle_tempo(d)
+  local i = 1
+  for k, v in ipairs(M.TEMPOS) do if v == M.tempo then i = k end end
+  M.tempo = M.TEMPOS[(i - 1 + d) % #M.TEMPOS + 1]
+  M.apply()
+  M.save()
+end
 
 local FILE = "settings.lua"
 
@@ -16,6 +29,7 @@ function M.apply()
   rap.music_volume(M.music / 127)
   rap.volume(M.sound / 127)
   rap.smooth(M.smooth)
+  rap.music_tempo(M.tempo / 100)
 end
 
 function M.load()
@@ -31,6 +45,7 @@ function M.load()
         M.music = math.floor((tonumber(t.music) or 7) * 127 / 10)
         M.sound = math.floor((tonumber(t.sound) or 8) * 127 / 10)
       end
+      if not M.TEMPOS_SET[M.tempo] then M.tempo = 100 end
       M.music = math.max(0, math.min(127, M.music))
       M.sound = math.max(0, math.min(127, M.sound))
     end
@@ -51,8 +66,8 @@ local function binds(t)
 end
 
 function M.save()
-  rap.save_file(FILE, ("return { version = 2, music = %d, sound = %d, detail = %s, cadence = %d, smooth = %s,\n  keys = %s,\n  pad = %s }\n")
-    :format(M.music, M.sound, tostring(M.detail), M.cadence, tostring(M.smooth), binds(M.keys), binds(M.pad)))
+  rap.save_file(FILE, ("return { version = 2, music = %d, sound = %d, detail = %s, cadence = %d, smooth = %s, tempo = %d,\n  keys = %s,\n  pad = %s }\n")
+    :format(M.music, M.sound, tostring(M.detail), M.cadence, tostring(M.smooth), M.tempo, binds(M.keys), binds(M.pad)))
 end
 
 -- Cycle the game speed through 3/4/5 retraces per frame and save.

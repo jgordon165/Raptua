@@ -61,7 +61,8 @@ Options > ADVANCED > SMOOTH MOTION draws 60 frames a second: the map,
 enemies and shots glide between the game's own frames (about 17 to 23 a
 second, as in the original). Where enemies go, how fast and when they fire
 doesn't change; only the in-between pictures are new, a fraction of a frame
-behind. Off by default. GAME SPEED is there too.
+behind. Off by default. MUSIC TEMPO plays the music a little faster (+3% to
++15%, same pitch), and GAME SPEED is there too.
 
 Options > ADVANCED > CONTROLLER SETUP sets which buttons fire, change the special weapon and
 drop a megabomb (A, B, X, Y, LB, RB, LT, RT or the sticks pressed in):
