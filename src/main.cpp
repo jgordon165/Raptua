@@ -255,7 +255,8 @@ int main(int argc, char** argv) {
             eng->input.begin_frame();
             ++ticks;
         }
-        if (steps && !call(L, "draw")) rc = 2;
+        eng->alpha = headless ? 0.0 : double(acc) / double(step);
+        if ((steps || eng->smooth) && !call(L, "draw")) rc = 2;
         eng->window.present(eng->screen);
         if (ticks > 0 && !first_frame_logged) { log_line("first frame shown"); first_frame_logged = true; }
         if (headless && ticks >= headless_ticks) break;
