@@ -6,7 +6,7 @@
 -- The original waits for at least 3 (23.3 fps, its ceiling on a fast PC);
 -- on slower PCs a frame took 4 or 5 (17.5 / 14 fps) and the whole game ran
 -- slower, as nothing scales movement by frame time.
-local M = { music = 90, sound = 100, detail = true, cadence = 4, smooth = false, tempo = 100,
+local M = { music = 90, sound = 100, detail = true, cadence = 4, smooth = false, tempo = 100, coop = false,
             keys = {}, pad = {} }   -- bindings: game/controls.lua
 M.CADENCES = { 3, 4, 5 }
 -- Music tempo, percent of the original's (Options > ADVANCED > MUSIC TEMPO).
@@ -66,8 +66,8 @@ local function binds(t)
 end
 
 function M.save()
-  rap.save_file(FILE, ("return { version = 2, music = %d, sound = %d, detail = %s, cadence = %d, smooth = %s, tempo = %d,\n  keys = %s,\n  pad = %s }\n")
-    :format(M.music, M.sound, tostring(M.detail), M.cadence, tostring(M.smooth), M.tempo, binds(M.keys), binds(M.pad)))
+  rap.save_file(FILE, ("return { version = 2, music = %d, sound = %d, detail = %s, cadence = %d, smooth = %s, tempo = %d, coop = %s,\n  keys = %s,\n  pad = %s }\n")
+    :format(M.music, M.sound, tostring(M.detail), M.cadence, tostring(M.smooth), M.tempo, tostring(M.coop), binds(M.keys), binds(M.pad)))
 end
 
 -- Cycle the game speed through 3/4/5 retraces per frame and save.

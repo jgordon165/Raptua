@@ -76,6 +76,8 @@ end
 --                  game itself is unchanged
 --   MUSIC TEMPO    the music a little faster: +3, +6, +10 or +15% (the
 --                  sequencer's clock; the pitch stays)
+--   TWO PLAYERS    co-op: a second controller flies a second ship in the
+--                  missions, on player one's pilot (scenes/play.lua)
 --   GAME SPEED     game frames a second (the original's 3, 4 or 5 vertical
 --                  blanks per frame; also F5 on the main menu)
 --   KEYBOARD / CONTROLLER  the key or button setup
@@ -84,7 +86,7 @@ end
 function M.advanced()
   local controls = require("game.controls")
   local XENON = rap.platform == "xenon"
-  local rows = { "smooth", "tempo", "speed", "controls", "done" }
+  local rows = { "smooth", "tempo", "speed", "coop", "controls", "done" }
   local d = { row = 1, t = 0 }
   local W, RH = 236, 13
   local H = (#rows + 2) * RH + 10
@@ -92,6 +94,7 @@ function M.advanced()
 
   local function label(r)
     if r == "smooth" then return "SMOOTH MOTION", settings.smooth and "ON (60 FPS)" or "OFF" end
+    if r == "coop" then return "TWO PLAYERS (CO-OP)", settings.coop and "ON" or "OFF" end
     if r == "tempo" then return "MUSIC TEMPO", settings.tempo == 100 and "ORIGINAL" or ("+%d%%"):format(settings.tempo - 100) end
     if r == "speed" then return settings.cadence_label(), "" end
     if r == "controls" then return controls.kind() == "pad" and "CONTROLLER SETUP" or "KEYBOARD SETUP", "" end
@@ -106,6 +109,9 @@ function M.advanced()
     if r == "smooth" then
       settings.smooth = not settings.smooth
       settings.apply(); settings.save()
+    elseif r == "coop" then
+      settings.coop = not settings.coop
+      settings.save()
     elseif r == "tempo" then
       settings.cycle_tempo(dir)
     elseif r == "speed" then
@@ -243,6 +249,104 @@ function M.difficulty(pick)
     if map[r] then pick(map[r]); return true end
     if r == "ABORT" or r == "cancel" then pick(nil); return true end
   end)
+end
+
+-- A small list window of the port's own, drawn like ADVANCED: a title and
+-- rows; up/down picks a row, left/right (or A / Enter / a click) changes or
+-- chooses it, B / Esc backs out. rows[i] = { label = fn -> name, value,
+-- change = fn(dir) -> true to close }. back() is called on B / Esc.
+-- extra(d, X, Y, W, H) draws anything more (inside the window).
+local function list_window(title, rows, back, opts)
+  opts = opts or {}
+  local XENON = rap.platform == "xenon"
+  local d = { row = opts.row or 1, t = 0 }
+  local W, RH = opts.w or 236, 13
+  local H = (#rows + 2) * RH + 10 + (opts.extra_h or 0)
+  local X, Y = (320 - W) // 2, (200 - H) // 2
+
+  function d:update()
+    self.t = self.t + 1
+    if self.t < 6 then return false end            -- the press that opened this
+    if util.pressed("back") or (XENON and rap.pad_pressed("B")) then back(); return true end
+    if util.pressed("up") then self.row = (self.row - 2) % #rows + 1 end
+    if util.pressed("down") then self.row = self.row % #rows + 1 end
+    local r = rows[self.row]
+    if r.cycle then
+      if rap.pressed("repeat_Left") or rap.pressed("pad_dpleft") then r.change(-1) end
+      if rap.pressed("repeat_Right") or rap.pressed("pad_dpright") then r.change(1) end
+    end
+    if util.pressed("ok") or rap.pressed("mouse_left") then
+      if r.change(1) then return true end
+    end
+    return false
+  end
+
+  function d:draw()
+    rap.shade(X, Y, W, H, -3); rap.shade(X, Y, W, H, -3)
+    rap.shade(X, Y, W, 1, 2); rap.shade(X, Y + H - 1, W, 1, 2)
+    rap.shade(X, Y, 1, H, 2); rap.shade(X + W - 1, Y, 1, H, 2)
+    local tw = rap.text_size("FONT2_FNT", title)
+    rap.text("FONT2_FNT", title, X + (W - tw) // 2, Y + 5, -1)
+    for i, r in ipairs(rows) do
+      local y = Y + 6 + i * RH + 2
+      if i == self.row then rap.shade(X + 4, y - 2, W - 8, RH - 1, 1) end
+      local name, value, swatch = r.label()
+      rap.text("FONT2_FNT", name, X + 10, y, -1)
+      if value and value ~= "" then
+        local vw = rap.text_size("FONT2_FNT", value)
+        local vx = X + W - 10 - vw
+        rap.text("FONT2_FNT", value, vx, y, -1)
+        if swatch then rap.rect(vx - 12, y, 8, 7, swatch) end
+      end
+    end
+    if opts.extra then opts.extra(self, X, Y + (#rows + 2) * RH + 4, W, opts.extra_h or 0) end
+  end
+  return d
+end
+
+-- New campaign, co-op on (Options > ADVANCED > TWO PLAYERS): ONE PLAYER or
+-- TWO PLAYERS. pick(1|2), or pick(nil) on back.
+function M.players(pick)
+  local rows = {
+    { label = function() return "ONE PLAYER" end, change = function() pick(1); return true end },
+    { label = function() return "TWO PLAYERS (CO-OP)" end, change = function() pick(2); return true end },
+  }
+  return list_window("HOW MANY PLAYERS?", rows, function() pick(nil) end, { w = 200, row = 2 })
+end
+
+-- Two-player campaign: each player's ship colour (game/shipcolors.lua),
+-- never the same; the two ships are shown in them. pick({ c1, c2 }), or
+-- pick(nil) on back.
+function M.ship_colors(pick, start)
+  local shipcolors = require("game.shipcolors")
+  local c = { (start or shipcolors.DEFAULT)[1], (start or shipcolors.DEFAULT)[2] }
+  local frames = util.frames("LPLAYER_PIC")
+  local function row(i)
+    return {
+      cycle = true,
+      label = function()
+        return ("PLAYER %d"):format(i), shipcolors.LIST[c[i]].name, shipcolors.swatch(c[i])
+      end,
+      change = function(dir) c[i] = shipcolors.step(c[i], dir, c[3 - i]) end,
+    }
+  end
+  local rows = { row(1), row(2),
+    { label = function() return "START" end, change = function() pick({ c[1], c[2] }); return true end } }
+  local SHIP_H = #frames > 0 and 40 or 0
+  return list_window("SHIP COLOURS", rows, function() pick(nil) end, {
+    w = 200, extra_h = SHIP_H,
+    extra = function(_, X, Y, W)
+      if #frames == 0 then return end
+      local f = frames[math.min(4, #frames)]   -- wings level
+      local fw = rap.pic_info(f)
+      for i = 1, 2 do
+        local x = X + W * i // 3 - fw // 2
+        rap.pic(f, x, Y, 0, -1, shipcolors.lut(c[i]))
+        local lw = rap.text_size("FONT2_FNT", tostring(i))
+        rap.text("FONT2_FNT", tostring(i), x + fw // 2 - lw // 2, Y + 32, -1)
+      end
+    end,
+  })
 end
 
 -- A yes/no question; answer(true|false).

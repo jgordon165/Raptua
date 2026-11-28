@@ -153,11 +153,22 @@ function M:boss_present()
 end
 
 -- One game frame. `scroll` is how far the map moved this frame (0 or 1).
-function M:step(scroll, player, shots)
+-- player2: co-op's second ship; each enemy goes after the nearer live one.
+local function target(e, a, b)
+  if not b or b.dead then return a end
+  if a.dead then return b end
+  local ex, ey = e.x + e.w / 2, e.y + e.h / 2
+  local function d2(p) local dx, dy = p.x + p.w / 2 - ex, p.y + p.h / 2 - ey; return dx * dx + dy * dy end
+  return d2(b) < d2(a) and b or a
+end
+
+function M:step(scroll, player, shots, player2)
+  local first = player
   local j = 1
   for i = 1, #self.list do
     local e = self.list[i]
     local d = e.def
+    local player = target(e, first, player2)
     e.t = e.t + 1
     e.flash = math.max(0, e.flash - 1)
     if e.countdown < 1 then e.shoot_on = true else e.countdown = e.countdown - d.movespeed end

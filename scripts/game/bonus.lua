@@ -95,19 +95,25 @@ local function apply(self, player, n)
   self.message_t = 70
 end
 
-function M:update(scroll, player)
+-- player2: co-op's second ship, which picks things up too (for the shared
+-- ship stores: scenes/play.lua shares the items table).
+function M:update(scroll, player, player2)
   self.message_t = math.max(0, self.message_t - 1)
-  local px, py, pw, ph = player:box()
   local j = 1
   for i = 1, #self.list do
     local b = self.list[i]
     b.t = b.t + 1
     b.y = b.y + scroll
     local keep = b.y < rap.H + 8
-    if keep and not player.dead and util.overlap(px, py, pw, ph, b.x, b.y, b.w, b.h) then
-      apply(self, player, b.n)
-      rap.play(self.snd, 0.9)
-      keep = false
+    for _, pl in ipairs({ player, player2 }) do
+      if keep and not pl.dead then
+        local px, py, pw, ph = pl:box()
+        if util.overlap(px, py, pw, ph, b.x, b.y, b.w, b.h) then
+          apply(self, pl, b.n)
+          rap.play(self.snd, 0.9)
+          keep = false
+        end
+      end
     end
     if keep then self.list[j] = b; j = j + 1 end
   end

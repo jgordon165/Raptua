@@ -67,7 +67,19 @@ Options has an **ADVANCED** button of Raptua's own:
 - **Smooth motion:** every displayed frame is drawn (60 a second on the Xbox 360), with the map, enemies, shots and pickups placed between the game's own frames (`game/smooth.lua`). The game itself is unchanged: enemies move, fire and get hit only on the original's game frames, by the same amounts. The in-between pictures trail by up to one game frame. Off by default.
 - **Music tempo:** the music a little faster: +3%, +6%, +10% or +15% over the original (only the sequencer's clock speeds up; the pitch stays). Original by default.
 - **Game speed:** the original's 3, 4 or 5 vertical blanks per game frame (also F5 on the main menu).
+- **Two players (co-op):** a second controller flies a second ship alongside the first, on the same pilot (see below). Off by default.
 - **Keyboard / controller setup:** see Controls.
+
+### Two-player co-op
+
+**TWO PLAYERS** turns co-op on. Then a new campaign asks, after the difficulty, **HOW MANY PLAYERS?** (one or two), and for two, the **SHIP COLOURS**: each player picks a colour for their ship (red, blue, green, gold, purple, cyan or silver; never the same as the other player's), shown on the two ships. The pilot keeps the choice: its missions have two ships, each repainted in its player's colour, with a mark in that colour under each ship and under each shield bar. Pilots started for one player, and the original's saves, fly alone.
+
+In a two-player campaign every mission has two ships. Player one flies as always (keyboard, mouse or the first controller); player two flies with the **second controller**, using the same buttons as player one's: the controller setup's fire, special and megabomb buttons on the Xbox 360 (pad 2), and A / right trigger fire, B special, Y megabomb, stick or D-pad on a PC or the Wii U (SDL's second game controller).
+
+- **One pilot, one progression:** both ships carry the pilot's weapons, specials and megabombs, and a pickup either ship takes goes to both; money either earns goes to the pilot. Each ship has its own shield: player two's bar is on the left edge.
+- **No friendly fire, no collisions:** the ships' shots only ever hit enemies, and the ships push apart instead of overlapping.
+- Enemies go after whichever ship is nearer. If one ship goes down the other flies on; the wave is lost only when both are down, and won (boss and all) while either flies. A ship lost in a wave is back for the next one.
+- On the Xbox 360 the second pad belongs to player two in missions: its START and BACK don't open menus.
 
 ## Controls
 

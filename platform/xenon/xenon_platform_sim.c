@@ -3,7 +3,10 @@
  *   XENON_SIM_ROOT   the port's folder (default: the current folder), with '/'
  *   XENON_SIM_SIZE   the "TV" size, WxH (default 1280x720)
  *   XENON_SIM_PAD    button presses, "frame:button ..." (buttons: up down left
- *                    right a b x y lb rb start back lt rt), each held 2 frames
+ *                    right a b x y lb rb start back lt rt), each held 2 frames;
+ *                    "n-m:button" holds it from frame n to m. A "2" before the
+ *                    button ("2a", "2left") is the second pad's (co-op), which
+ *                    is plugged in once the script names one.
  *   XENON_SIM_SHOT   "frame:file.bmp ...": saves those presented frames
  *   XENON_SIM_FRAMES quits after that many presented frames */
 #define _POSIX_C_SOURCE 200809L
@@ -18,7 +21,7 @@ static int started;
 static char root[512] = "./";
 static int tv_w = 1280, tv_h = 720;
 static long frames;
-static xp_pad pad;
+static xp_pad pad, pad2;
 static uint64_t audio_bytes_submitted;
 static uint64_t audio_start;
 static int audio_on;
@@ -104,20 +107,34 @@ static int pressed(const char *name)
     return 0;
 }
 
+/* One pad's buttons; pre: "" for the first pad, "2" for the second. */
+static void read_pad(xp_pad *d, const char *pre)
+{
+    char n[20];
+#define B(f, name) (snprintf(n, sizeof n, "%s%s", pre, name), d->f = pressed(n))
+    memset(d, 0, sizeof *d);
+    B(up, "up"); B(down, "down"); B(left, "left"); B(right, "right");
+    B(a, "a"); B(b, "b"); B(x, "x"); B(y, "y");
+    B(lb, "lb"); B(rb, "rb"); B(start, "start"); B(back, "back");
+    B(lt, "lt"); B(rt, "rt");
+    if (d->lt) d->lt = 255;
+    if (d->rt) d->rt = 255;
+#undef B
+}
+
 void xp_poll(void)
 {
-    memset(&pad, 0, sizeof pad);
+    const char *script = getenv("XENON_SIM_PAD");
+    read_pad(&pad, "");
     pad.connected = 1;
-    pad.up = pressed("up"); pad.down = pressed("down"); pad.left = pressed("left"); pad.right = pressed("right");
-    pad.a = pressed("a"); pad.b = pressed("b"); pad.x = pressed("x"); pad.y = pressed("y");
-    pad.lb = pressed("lb"); pad.rb = pressed("rb"); pad.start = pressed("start"); pad.back = pressed("back");
-    pad.lt = pressed("lt") ? 255 : 0;
-    pad.rt = pressed("rt") ? 255 : 0;
+    read_pad(&pad2, "2");
+    pad2.connected = script && (strstr(script, ":2") != NULL);
 }
 
 void xp_get_pad(int port, xp_pad *out)
 {
     if (port == 0) *out = pad;
+    else if (port == 1) *out = pad2;
     else memset(out, 0, sizeof *out);
 }
 

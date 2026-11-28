@@ -222,11 +222,16 @@ int l_clip(lua_State* L) {   // clip() resets; clip(x, y, w, h)
     return 0;
 }
 
-int l_pic(lua_State* L) {   // pic(item, x, y [, flip [, remap]]) -> drawn?
+// pic(item, x, y [, flip [, remap [, lut]]]) -> drawn?
+// lut: a 256-byte string, each colour's replacement (co-op ship colours).
+int l_pic(lua_State* L) {
     auto* e = E(L);
     const Pic* p = get_pic(L, e, 1);
+    size_t n = 0;
+    const char* lut = lua_type(L, 6) == LUA_TSTRING ? lua_tolstring(L, 6, &n) : nullptr;
     if (p) e->screen.pic(*p, int(luaL_checknumber(L, 2)), int(luaL_checknumber(L, 3)),
-                         int(luaL_optinteger(L, 4, 0)), int(luaL_optinteger(L, 5, -1)));
+                         int(luaL_optinteger(L, 4, 0)), int(luaL_optinteger(L, 5, -1)),
+                         n == 256 ? reinterpret_cast<const uint8_t*>(lut) : nullptr);
     lua_pushboolean(L, p != nullptr);
     return 1;
 }
@@ -481,8 +486,16 @@ int l_key_down(lua_State* L) {
 // The Xbox 360 controller's own buttons (Input::pad_*): pad_held(b),
 // pad_pressed(b), pad_button() -> the first pressed this tick or nil,
 // pad_take({b, ...}) (those buttons stop also being keys).
-int l_pad_held(lua_State* L) { lua_pushboolean(L, E(L)->input.pad_held(luaL_checkstring(L, 1))); return 1; }
-int l_pad_pressed(lua_State* L) { lua_pushboolean(L, E(L)->input.pad_pressed(luaL_checkstring(L, 1))); return 1; }
+int l_pad_held(lua_State* L) {
+    lua_pushboolean(L, E(L)->input.pad_held(luaL_checkstring(L, 1), int(luaL_optinteger(L, 2, 0))));
+    return 1;
+}
+int l_pad_pressed(lua_State* L) {
+    lua_pushboolean(L, E(L)->input.pad_pressed(luaL_checkstring(L, 1), int(luaL_optinteger(L, 2, 0))));
+    return 1;
+}
+// pad_keys_first_only(on): co-op, only the first pad also makes keys.
+int l_pad_keys_first_only(lua_State* L) { E(L)->input.pad_keys_first_only(lua_toboolean(L, 1) != 0); return 0; }
 int l_pad_button(lua_State* L) {
     std::string b = E(L)->input.pad_first();
     if (b.empty()) lua_pushnil(L); else lua_pushstring(L, b.c_str());
@@ -594,7 +607,7 @@ void register_lua_api(lua_State* L, Engine* e) {
         {"music", l_music}, {"music_stop", l_music_stop}, {"music_volume", l_music_volume},
         {"music_playing", l_music_playing},
         {"held", l_held}, {"pressed", l_pressed}, {"typed", l_typed}, {"smooth", l_smooth}, {"music_tempo", l_music_tempo}, {"alpha", l_alpha}, {"key_down", l_key_down},
-        {"pad_held", l_pad_held}, {"pad_pressed", l_pad_pressed}, {"pad_button", l_pad_button}, {"pad_take", l_pad_take},
+        {"pad_held", l_pad_held}, {"pad_pressed", l_pad_pressed}, {"pad_button", l_pad_button}, {"pad_take", l_pad_take}, {"pad_keys_first_only", l_pad_keys_first_only},
         {"mouse", l_mouse}, {"grab_mouse", l_grab_mouse},
         {"tick_rate", l_tick_rate}, {"quit", l_quit}, {"can_exit", l_can_exit}, {"fullscreen", l_fullscreen},
         {"headless", l_headless}, {"millis", l_millis}, {"message", l_message}, {"screenshot", l_screenshot},
