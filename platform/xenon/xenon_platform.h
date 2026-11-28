@@ -87,12 +87,19 @@ void xp_log(const char *msg);
 int xp_can_exit(void);
 void xp_exit_title(int status);
 
-/* xenon_dashboard.c: the .xex Quit launches, from dashboard.txt in the
- * port's folder, as a kernel path in out (1), or 0 for the default
- * dashboard. xp_dashboard_map turns "Usb0:\Aurora\default.xex" and the like
- * into that form (0 if the drive isn't known). */
+/* xenon_dashboard.c: Quit's exit commands ("launch <path>", "dashboard"),
+ * from the command line's --exit values or else dashboard.txt.
+ * xp_exit_commands fills out with them, ";"-separated (0: none);
+ * xp_exit_next walks them: XP_EXIT_LAUNCH with a kernel path in path_out,
+ * XP_EXIT_DASHBOARD, or XP_EXIT_END when they run out. xp_dashboard_map
+ * turns "Usb0:\Aurora\default.xex" and the like into a kernel path (0 if
+ * the drive isn't known). xp_command_line() is how the title was started
+ * (the platform's; "" if it can't tell). */
 #include <stddef.h>
-int xp_dashboard_target(char *out, size_t out_bytes);
+enum { XP_EXIT_END = 0, XP_EXIT_LAUNCH = 1, XP_EXIT_DASHBOARD = 2 };
+const char *xp_command_line(void);
+int xp_exit_commands(char *out, size_t out_bytes, int *from_args);
+int xp_exit_next(const char **cursor, char *path_out, size_t out_bytes);
 int xp_dashboard_map(const char *in, char *out, size_t out_bytes);
 
 #ifdef __cplusplus

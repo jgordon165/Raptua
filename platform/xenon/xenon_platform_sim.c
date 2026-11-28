@@ -180,10 +180,22 @@ void xp_log(const char *msg) { fprintf(stderr, "%s\n", msg); }
 
 /* The stand-in plays the xsdk title here: it can exit, and says so. */
 int xp_can_exit(void) { return 1; }
+/* The stand-in's command line: XENON_SIM_CMDLINE, as the loader's would be. */
+const char *xp_command_line(void)
+{
+    const char *c = getenv("XENON_SIM_CMDLINE");
+    return c ? c : "\"game:\\raptua.xex\"";
+}
+
 void xp_exit_title(int status)
 {
-    char target[512];
-    if (xp_dashboard_target(target, sizeof target)) fprintf(stderr, "exit: launching %s\n", target);
+    char commands[1024], target[512];
+    const char *c = commands;
+    int from_args = 0;
+    if (!xp_exit_commands(commands, sizeof commands, &from_args)) commands[0] = '\0';
+    else fprintf(stderr, "exit: commands from %s: %s\n", from_args ? "the command line" : "dashboard.txt", commands);
+    /* The stand-in has no drives to look on: it launches the first one. */
+    if (xp_exit_next(&c, target, sizeof target) == XP_EXIT_LAUNCH) fprintf(stderr, "exit: launching %s\n", target);
     else fprintf(stderr, "exit: back to the dashboard\n");
     exit(status);
 }

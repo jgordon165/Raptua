@@ -213,3 +213,5 @@ clock_t times(struct tms *t)
 /* XeLL has no dashboard to go back to: the game keeps no exit there. */
 int xp_can_exit(void) { return 0; }
 void xp_exit_title(int status) { (void)status; }
+
+const char *xp_command_line(void) { return ""; }
